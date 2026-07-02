@@ -1,0 +1,246 @@
+<!-- //自分でいじったver -->
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PADシュミ</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Puzzle & Dragons</p>
+          <h1>マルチスキルターンver2</h1>
+        </div>
+        <div class="header-actions" aria-label="データ操作">
+          <button class="icon-button" id="savePreset" type="button" title="保存">保存</button>
+          <button class="icon-button" id="loadPreset" type="button" title="読込">読込</button>
+          <button class="icon-button danger" id="resetAll" type="button" title="リセット">リセット</button>
+        </div>
+      </header>
+
+      <div class="receipt-board">
+        <aside class="left-rail" aria-label="状況">
+          <section class="status-grid" aria-label="現在の状態">
+            <article class="status-panel primary-status">
+              <span class="status-label">現在の手番</span>
+              <strong id="activePlayerName">A</strong>
+            </article>
+            <article class="status-panel turn-panel">
+              <span class="status-label">経過ターン</span>
+              <strong id="actionCount">0</strong>
+              <small id="abTurnCount">
+                A 0 / B 0
+              </small>
+            </article>
+            <article class="status-panel floor-panel">
+              <span class="status-label">階層</span>
+              <button id="floorButton" type = "button">
+               <span id="floorCount">1</span>
+              </button>
+            </article>
+          </section>
+
+          <section class="control-band" aria-label="シミュレーション設定">
+            <div id="sharedBoostContainer"></div>
+            <div class="setup-actions">
+              <button id="startBattle" type="button">
+                準備完了
+              </button>
+              <button id="returnSetup" type="button">
+               編成に戻る
+              </button>
+            </div>
+            <label class="field-group compact" style="display:none;">
+              <span class="field-label">敵行動</span>
+              <input id="enemyTurns" type="number" min="0" max="99" value="1" />
+            </label>
+          </section>
+        </aside>
+        <section class="team-area" id="teams" aria-label="チーム設定"></section>
+
+        <aside class="side-panel" aria-label="操作とログ">
+          <section class="turn-card" aria-label="ターン操作">
+            <button class="primary-action attack-button" id="advanceTurn" type="button">攻撃</button>
+            <button class="pass-button" id="passTurn" type="button">パス</button>
+            <button class="breakthrough-button" id="breakthroughTurn" type="button">突破</button>
+            <button id="undoTurn" type="button">戻す</button>
+          </section>
+          
+          <section class="preemptive-list">
+            <div class="section-heading">
+              <h2>登録済み先制</h2>
+            </div>
+
+            <div id="floorActionList"></div>
+          </section>
+
+          <section class="timeline">
+            <div class="section-heading">
+              <h2>履歴</h2>
+              <div>
+                <button id="copyLog" type="button" >コピー</button>
+                <button id="clearLog" type="button">消去</button>
+              </div>  
+            </div>
+            <ol id="logList"></ol>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <template id="teamTemplate">
+      <article class="team-card">
+        <div class="team-header">
+          <label>
+            チーム
+            <input class="team-name" type="text" />
+          </label>
+        </div>
+        <div class="member-list"></div>
+      </article>
+    </template>
+
+    <template id="memberTemplate">
+      <div class="member-row">
+        <button class="edit-member" type="button" title="変更">変更</button>
+        <div class="character-tile">
+          <span class="slot-number"></span>
+          <span class="character-portrait">
+            <span class="character-initial"></span>
+          </span>
+          <span class="character-name"></span>
+          <span class="turn-text"></span>
+          <span class="turn-meter">
+            <span class="turn-fill"></span>
+          </span>
+        </div>
+        <button class="use-skill" type="button">使用</button>
+        <input class="member-name" type="hidden" />
+        <input class="max-cd" type="hidden" />
+        <input class="current-cd" type="hidden" />
+        <input class="haste-cd" type="hidden" />
+      </div>
+    </template>
+
+    <dialog class="edit-dialog" id="memberDialog">
+      <form method="dialog" class="edit-form" id="memberEditForm">
+        <div class="dialog-head">
+          <div>
+            <span class="dialog-kicker" id="dialogSlot">枠1</span>
+            <h2>キャラ編集</h2>
+          </div>
+          <button class="dialog-close" id="dialogCancel" type="button" aria-label="閉じる">×</button>
+        </div>
+        <label>
+          キャラ名
+          <input id="editName" type="text" autocomplete="off" />
+        </label>
+        <div class="dialog-grid mode-grid" id="skillModePanel">
+          <label>
+            スキル形式
+            <select id="editSkillMode">
+              <option value="normal">通常</option>
+              <option value="transform">変身</option>
+              <option value="multistage">多段階</option>
+              <option value="loop">ループ</option>
+            </select>
+          </label>
+          <label>
+            段階数
+            <input id="editPhaseCount" type="number" min="1" max="9" />
+          </label>
+          <label>
+            編集段階
+            <select id="editPhaseIndex"></select>
+          </label>
+        </div>
+        <div class="dialog-grid">
+          <label>
+           スキルターン
+           <input id="editMaxCd" type="number" min="1" max="99" />
+          </label>
+          <label>
+            ヘイスト
+            <input id="editHaste" type="number" min="-99" max="99" />
+          </label>
+          <label id="delayLatentPanel">
+            潜在遅延耐性
+            <input id="editDelayLatent" type="number" min="0" max="8" />
+          </label>
+          <label id="delayAwakeningPanel">
+            覚醒遅延耐性
+            <input id="editDelayAwakening" type="number" min="0" max="20" />
+          </label>
+        </div>
+        <div class="dialog-actions">
+          <button id="dialogApply" class="primary-action" type="submit">反映</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="edit-dialog" id="floorDialog">
+  <form method="dialog" class="edit-form">
+    <div class="dialog-head">
+      <div>
+        <span class="dialog-kicker">階層編集</span>
+        <h2 id="floorDialogTitle">1F 先制行動</h2>
+      </div>
+
+      <button
+        id="floorDialogCancel"
+        class="dialog-close"
+        type="button"
+      >
+        ×
+      </button>
+    </div>
+    <label>
+        編集階層
+        <input
+          id="floorEditTarget"
+          type="number"
+          min="1"
+          max="99"
+          value="1"
+        >
+      </label>
+
+    <label>
+      種類
+      <select id="floorActionType">
+        <option value="delay">遅延</option>
+        <option value="haste">ヘイスト</option>
+      </select>
+    </label>
+
+    <label>
+      数値
+      <input
+        id="floorActionValue"
+        type="number"
+        min="1"
+        max="99"
+        value="1"
+      >
+    </label>
+
+    <div class="dialog-actions">
+      <button
+        id="saveFloorAction"
+        class="primary-action"
+        type="button"
+      >
+        保存
+      </button>
+      <button
+        id = "saveAndNextFloor"
+        type = "button"
+      >次の階層</button>
+    </div>
+  </form>
+</dialog>
+  <script src="./app.js"></script>
+  </body>
+</html>
