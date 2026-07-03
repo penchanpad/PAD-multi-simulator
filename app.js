@@ -1,4 +1,5 @@
 //自分でいじったver
+//test
 const STORAGE_KEY = "pad-multi-skill-sim";
 const teamLabels = ["A", "B"];
 
