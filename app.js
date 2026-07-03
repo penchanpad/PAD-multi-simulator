@@ -1,6 +1,6 @@
 //自分でいじったver
 const STORAGE_KEY = "pad-multi-skill-sim";
-const teamLabels = ["A", "B", "C"];
+const teamLabels = ["A", "B"];
 
 const state = {
   activePlayer: 0,
