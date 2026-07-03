@@ -1088,40 +1088,57 @@ function savePreset() {
 function saveTeamPreset() {
   updateFromInputs();
 
-  const preset = {
+  const slot = prompt(
+    "保存先を入力してください（1～5）"
+  );
+
+  if (!slot || slot < 1 || slot > 5) {
+    return;
+  }
+
+  const presets = JSON.parse(
+    localStorage.getItem(TEAM_PRESET_KEY) || "{}"
+  );
+
+  presets[slot] = {
     teams: structuredClone(state.teams)
   };
 
   localStorage.setItem(
     TEAM_PRESET_KEY,
-    JSON.stringify(preset)
+    JSON.stringify(presets)
   );
 
-  alert("編成を保存しました");
+  alert(`編成${slot}に保存しました`);
 }
 
 function loadTeamPreset() {
-  const saved =
-    localStorage.getItem(
-      TEAM_PRESET_KEY
-    );
+  const slot = prompt(
+    "読み込む編成番号を入力してください（1～5）"
+  );
 
-  if (!saved) {
-    alert("保存された編成がありません");
+  if (!slot || slot < 1 || slot > 5) {
     return;
   }
 
-  const preset =
-    JSON.parse(saved);
+  const presets = JSON.parse(
+    localStorage.getItem(TEAM_PRESET_KEY) || "{}"
+  );
+
+  if (!presets[slot]) {
+    alert("そのスロットには保存されていません");
+    return;
+  }
 
   pushHistory();
 
-  state.teams =
-    structuredClone(
-      preset.teams
-    );
+  state.teams = structuredClone(
+    presets[slot].teams
+  );
 
   render();
+
+  alert(`編成${slot}を読み込みました`);
 }
 
 function loadPreset() {
