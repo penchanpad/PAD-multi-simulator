@@ -1,6 +1,7 @@
 //自分でいじったver
-//test
 const STORAGE_KEY = "pad-multi-skill-sim";
+const TEAM_PRESET_KEY = "pad-team-presets";
+const PRESET_SLOT_COUNT = 5;
 const teamLabels = ["A", "B"];
 
 const state = {
@@ -102,6 +103,11 @@ function snapshot() {
     log: state.log,
     floorActions: state.floorActions
   });
+}
+function createTeamPresetData() {
+  return {
+    teams: structuredClone(state.teams)
+  };
 }
 
 function restore(serialized) {
@@ -1079,6 +1085,45 @@ function savePreset() {
   render();
 }
 
+function saveTeamPreset() {
+  updateFromInputs();
+
+  const preset = {
+    teams: structuredClone(state.teams)
+  };
+
+  localStorage.setItem(
+    TEAM_PRESET_KEY,
+    JSON.stringify(preset)
+  );
+
+  alert("編成を保存しました");
+}
+
+function loadTeamPreset() {
+  const saved =
+    localStorage.getItem(
+      TEAM_PRESET_KEY
+    );
+
+  if (!saved) {
+    alert("保存された編成がありません");
+    return;
+  }
+
+  const preset =
+    JSON.parse(saved);
+
+  pushHistory();
+
+  state.teams =
+    structuredClone(
+      preset.teams
+    );
+
+  render();
+}
+
 function loadPreset() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (!saved) {
@@ -1116,6 +1161,8 @@ document.querySelector("#undoTurn").addEventListener("click", () => {
 document.querySelector("#savePreset").addEventListener("click", savePreset);
 document.querySelector("#loadPreset").addEventListener("click", loadPreset);
 document.querySelector("#resetAll").addEventListener("click", resetAll);
+document.querySelector("#saveTeamPreset").addEventListener("click",saveTeamPreset);
+document.querySelector("#loadTeamPreset").addEventListener("click",loadTeamPreset);
 document.querySelector("#copyLog").addEventListener("click", copyLog);
 document.querySelector("#clearLog").addEventListener("click", () => {
   pushHistory();
