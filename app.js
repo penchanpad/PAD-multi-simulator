@@ -23,6 +23,8 @@ const elements = {
   teams: document.querySelector("#teams"),
   activePlayerName: document.querySelector("#activePlayerName"),
   returnSetup:document.getElementById("returnSetup"),
+  teamPresetDialog:document.getElementById("teamPresetDialog"),
+  teamPresetDialogClose:document.getElementById("teamPresetDialogClose"),
   actionCount: document.querySelector("#actionCount"),
   floorCount: document.querySelector("#floorCount"),
   floorButton: document.querySelector("#floorButton"),
@@ -1092,16 +1094,23 @@ function saveTeamPreset() {
     "保存先を入力してください（1～5）"
   );
 
-  if (!slot || slot < 1 || slot > 5) {
-    return;
-  }
+  if (!slot)return;
+  slot = slot.replace(/[０-９]/g,s =>
+    String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
+  );
 
   const presets = JSON.parse(
     localStorage.getItem(TEAM_PRESET_KEY) || "{}"
   );
 
+  const name = prompt(
+   "編成名を入力してください",
+   presets[slot]?.name || `編成${slot}`
+  );
+
   presets[slot] = {
-    teams: structuredClone(state.teams)
+   name: name || `編成${slot}`,
+   teams: structuredClone(state.teams)
   };
 
   localStorage.setItem(
@@ -1109,20 +1118,26 @@ function saveTeamPreset() {
     JSON.stringify(presets)
   );
 
-  alert(`編成${slot}に保存しました`);
+  alert(`「${name || `編成${slot}`}」を編成${slot}に保存しました`);
 }
 
 function loadTeamPreset() {
-  const slot = prompt(
-    "読み込む編成番号を入力してください（1～5）"
-  );
-
-  if (!slot || slot < 1 || slot > 5) {
-    return;
-  }
-
   const presets = JSON.parse(
     localStorage.getItem(TEAM_PRESET_KEY) || "{}"
+  );
+
+  const slotList = Array.from({ length: 5 }, (_, i) => {
+    const slot = i + 1;
+    return `${slot}: ${presets[slot]?.name || "空き"}`;
+  }).join("\n");
+
+  const slot = prompt(
+    `読み込む編成番号を入力してください\n\n${slotList}`
+  );
+
+  if (!slot) return;
+    slot = slot.replace(/[０-９]/g, s =>
+      String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
   );
 
   if (!presets[slot]) {
@@ -1138,17 +1153,7 @@ function loadTeamPreset() {
 
   render();
 
-  alert(`編成${slot}を読み込みました`);
-}
-
-function loadPreset() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) {
-    renderLog();
-    return;
-  }
-  restore(saved);
-  render();
+  alert(`「${presets[slot].name}」を読み込みました`);
 }
 
 function resetAll() {
@@ -1252,6 +1257,16 @@ elements.memberEditForm.addEventListener("submit", (event) => {
   closeMemberEditor();
 
   render();
+});
+elements.saveTeamPreset.addEventListener("click", () => {
+
+    elements.teamPresetDialog.showModal();
+
+});
+elements.teamPresetDialogClose.addEventListener("click", () => {
+
+    elements.teamPresetDialog.close();
+
 });
 elements.saveFloorAction.addEventListener("click",saveFloorAction);
 elements.saveAndNextFloor.addEventListener("click",saveAndNextFloor);

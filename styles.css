@@ -807,3 +807,28 @@ h2 {
     white-space: normal;
   }
 }
+.team-preset-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+
+  padding:10px 0;
+
+  border-bottom:1px solid #cccccc;
+}
+
+.team-preset-name{
+  flex:1;
+  font-size:16px;
+  font-weight:bold;
+}
+
+.team-preset-buttons{
+  display:flex;
+  gap:8px;
+}
+
+.team-preset-buttons button{
+  width:70px;
+}
