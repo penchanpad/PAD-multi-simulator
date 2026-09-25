@@ -1463,6 +1463,7 @@ function saveTeamPresetSlot(slot) {
 
   setTeamPresets(presets);
   renderTeamPresetList();
+  alert(`「${presetName}」を編成${slot}に保存しました`);
 }
 
 function loadTeamPresetSlot(slot) {
