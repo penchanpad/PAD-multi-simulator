@@ -11,7 +11,9 @@ const state = {
   bTurnCount: 0,
   floorCount: 1,
   floorActions:{},
+  superResolveUses:{},
   teams: [],
+  leaderIndices:[0,5],
   log: [],
   history: [],
   isBattleStarted: false,
@@ -23,8 +25,18 @@ const elements = {
   teams: document.querySelector("#teams"),
   activePlayerName: document.querySelector("#activePlayerName"),
   returnSetup:document.getElementById("returnSetup"),
-  teamPresetDialog:document.getElementById("teamPresetDialog"),
-  teamPresetDialogClose:document.getElementById("teamPresetDialogClose"),
+  saveTeamPreset: document.getElementById("saveTeamPreset"),
+  teamPresetDialog:document.getElementById("teamPresetDialogV3") || document.getElementById("teamPresetDialogV2") || document.getElementById("teamPresetDialog"),
+  teamPresetDialogClose:document.getElementById("teamPresetDialogCloseV3") || document.getElementById("teamPresetDialogCloseV2") || document.getElementById("teamPresetDialogClose"),
+  teamPresetList: document.getElementById("teamPresetListV3") || document.getElementById("teamPresetListV2") || document.getElementById("teamPresetList"),
+  resetDialog: document.getElementById("resetDialog"),
+  resetForm: document.getElementById("resetForm"),
+  resetDialogClose: document.getElementById("resetDialogClose"),
+  resetTeams: document.getElementById("resetTeams"),
+  resetProgress: document.getElementById("resetProgress"),
+  resetLog: document.getElementById("resetLog"),
+  resetFloorActions: document.getElementById("resetFloorActions"),
+  resetSavedTeams: document.getElementById("resetSavedTeams"),
   actionCount: document.querySelector("#actionCount"),
   floorCount: document.querySelector("#floorCount"),
   floorButton: document.querySelector("#floorButton"),
@@ -33,6 +45,8 @@ const elements = {
   floorDialogCancel: document.querySelector("#floorDialogCancel"),
   floorActionType: document.querySelector("#floorActionType"),
   floorActionValue: document.querySelector("#floorActionValue"),
+  floorSuperResolve: document.querySelector("#floorSuperResolve"),
+  floorSuperResolveCount: document.querySelector("#floorSuperResolveCount"),
   floorActionList:document.querySelector("#floorActionList"),
   saveFloorAction: document.querySelector("#saveFloorAction"),
   saveAndNextFloor:document.querySelector("#saveAndNextFloor"),
@@ -52,6 +66,7 @@ const elements = {
   editPhaseIndex: document.querySelector("#editPhaseIndex"),
   editMaxCd: document.querySelector("#editMaxCd"),
   editHaste: document.querySelector("#editHaste"),
+  editSkillEffect:document.querySelector("#editSkillEffect"),
   delayLatentPanel: document.querySelector("#delayLatentPanel"),
   editDelayLatent: document.querySelector("#editDelayLatent"),
   delayAwakeningPanel: document.querySelector("#delayAwakeningPanel"),
@@ -102,13 +117,16 @@ function snapshot() {
     aTurnCount: state.aTurnCount,
     bTurnCount: state.bTurnCount,
     teams: state.teams,
+    leaderIndices: state.leaderIndices,
     log: state.log,
-    floorActions: state.floorActions
+    floorActions: state.floorActions,
+    superResolveUses: state.superResolveUses
   });
 }
 function createTeamPresetData() {
   return {
-    teams: structuredClone(state.teams)
+    teams: structuredClone(state.teams),
+    leaderIndices: structuredClone(state.leaderIndices)
   };
 }
 
@@ -121,8 +139,10 @@ function restore(serialized) {
   state.aTurnCount = data.aTurnCount ?? 0;
   state.bTurnCount = data.bTurnCount ?? 0;
   state.teams = data.teams ?? [];
+  state.leaderIndices = data.leaderIndices ?? [0, 5];
   state.log = data.log ?? [];
   state.floorActions = data.floorActions ?? {};
+  state.superResolveUses = data.superResolveUses ?? {};
   state.history = [];
   ensureTeams();
 }
@@ -190,7 +210,8 @@ function createPhaseFromSkill(skill, index = 0) {
   return {
     name: skill.name || `スキル${index + 1}`,
     maxCd: clampNumber(skill.maxCd ?? 0),
-    haste: clampNumber(skill.haste ?? 0)
+    haste: clampNumber(skill.haste ?? 0),
+    effect:skill.effect||"none"
   };
 }
 
@@ -202,7 +223,8 @@ function normalizeSkill(skill, fallbackName = "スキル") {
   skill.phases = skill.phases.map((phase, index) => ({
     name: phase.name || `${fallbackName}${index + 1}`,
     maxCd: clampNumber(phase.maxCd),
-    haste: clampNumber(phase.haste)
+    haste: clampNumber(phase.haste),
+    effect:phase.effect||"none"
   }));
   skill.phaseIndex = clampNumber(skill.phaseIndex ?? 0, 0, skill.phases.length - 1);
   const activePhase = getActivePhase(skill);
@@ -254,7 +276,7 @@ function resizeSkillPhases(skill, count) {
     skill.phases.push({
       name: `スキル${skill.phases.length + 1}`,
       maxCd: previous.maxCd,
-      haste: previous.haste
+      haste: previous.haste,
     });
   }
   skill.phases = skill.phases.slice(0, phaseCount);
@@ -314,7 +336,70 @@ function getVisibleMemberIndices(teamIndex) {
 }
 
 function getLeaderIndex(teamIndex) {
-  return teamIndex === 0 ? 0 : 5;
+  return state.leaderIndices[teamIndex]??(teamIndex === 0 ? 0 : 5);
+}
+
+function changeLeader(teamIndex, targetIndex) {
+  const team = state.teams[teamIndex];
+
+  const oldLeaderIndex = getLeaderIndex(teamIndex);
+
+  if (oldLeaderIndex === targetIndex) {
+    return false;
+  }
+
+  const oldLeader = team.members[oldLeaderIndex];
+  const targetMember = team.members[targetIndex];
+
+  team.members[oldLeaderIndex] = targetMember;
+  team.members[targetIndex] = oldLeader;
+
+  state.leaderIndices[teamIndex] = targetIndex;
+
+  return true;
+}
+
+function selectLeaderChangeTarget(teamIndex) {
+  const team = state.teams[teamIndex];
+
+  const leaderIndex = getLeaderIndex(teamIndex);
+
+  const visibleIndices = getVisibleMemberIndices(teamIndex)
+    .filter(index => index !== leaderIndex);
+
+  const choices = visibleIndices.map((index, i) => {
+    const member = team.members[index];
+
+    return `${i + 1}: ${getDisplayMemberName(teamIndex, index, member)}`;
+  }).join("\n");
+
+  const answer = prompt(
+    `リダチェンするキャラを選択してください\n\n${choices}\n\n番号を入力してください`
+  );
+
+  if (answer === null) {
+    return null;
+  }
+
+  // 全角数字を半角数字に変換
+  const normalizedAnswer = answer.replace(/[０-９]/g, (char) => {
+    return String.fromCharCode(char.charCodeAt(0) - 0xFEE0);
+  });
+
+  const selectedNumber = Number(normalizedAnswer);
+
+  if (
+    Number.isNaN(selectedNumber) ||
+    selectedNumber < 1 ||
+    selectedNumber > visibleIndices.length
+  ) {
+    alert("正しい番号を入力してください。");
+    return null;
+  }
+
+  const targetIndex = visibleIndices[selectedNumber - 1];
+
+  return targetIndex;
 }
 
 function isLeaderSlot(teamIndex, memberIndex) {
@@ -327,6 +412,12 @@ function isMemberVisible(teamIndex, memberIndex) {
 
 function getSkillData(member, skillType) {
   return skillType === "assist" ? member.assist : member;
+}
+
+function getSkillEffect(skill) {
+  const phase = getActivePhase(skill);
+
+  return phase?.effect ?? "none";
 }
 
 function isAssistReady(member) {
@@ -349,9 +440,6 @@ function getAssistPercent(member) {
 }
 
 function getDisplayMemberName(teamIndex, memberIndex, member) {
-  if (teamIndex === 1 && memberIndex === 5) {
-    return "リーダー";
-  }
   return getSkillName(member);
 }
 
@@ -440,6 +528,42 @@ function applyPreemptiveHaste(amount) {
   );
 }
 
+function getSuperResolveCount(action) {
+  if (!action?.superResolve) return 0;
+  return clampNumber(action.superResolveCount ?? 1, 1, 9);
+}
+
+function hasRemainingSuperResolve(floor, action) {
+  const total = getSuperResolveCount(action);
+  const used = state.superResolveUses[floor] ?? 0;
+  return total > used;
+}
+
+function useSuperResolve(floor, action) {
+  const total = getSuperResolveCount(action);
+  const used = (state.superResolveUses[floor] ?? 0) + 1;
+  state.superResolveUses[floor] = used;
+  addLog(`${floor}F 超根性発動 ${used}/${total}`);
+}
+
+function applyFloorAction(floor, action, prefix = "先制") {
+  if (!action) return;
+
+  if (action.superResolve) {
+    addLog(`${floor}F 超根性 ${getSuperResolveCount(action)}回`);
+  }
+
+  if (action.type === "haste") {
+    addLog(`${prefix}: ${action.value}ヘイスト`);
+    applyPreemptiveHaste(action.value);
+  }
+
+  if (action.type === "delay") {
+    addLog(`${prefix}: スキル遅延 ${action.value}`);
+    applyPreemptiveDelay(action.value);
+  }
+}
+
 function chargeTeam(teamIndex, amount) {
   const team = state.teams[teamIndex];
   team.members.forEach((member) => {
@@ -521,25 +645,23 @@ function breakthroughTurn() {
 
   chargeForTurn(state.activePlayer, 1);
 
+  const currentFloor = state.floorCount;
+  const currentAction = state.floorActions[currentFloor];
+
+  if (hasRemainingSuperResolve(currentFloor, currentAction)) {
+    useSuperResolve(currentFloor, currentAction);
+    advanceTurnCore();
+    render();
+    return;
+  }
+
   state.floorCount += 1;
   addLog(`----- ${state.floorCount}F -----`);
 
   const action =
     state.floorActions[state.floorCount];
 
-  if (action) {
-
-    if (action.type === "haste") {
-      addLog(`先制: ${action.value}ヘイスト`);
-      applyPreemptiveHaste(action.value);
-    }
-
-    if (action.type === "delay") {
-      addLog(`先制: スキル遅延 ${action.value}`);
-      applyPreemptiveDelay(action.value);
-    }
-
-  }
+  applyFloorAction(state.floorCount, action);
 
   advanceTurnCore();
   render();
@@ -556,14 +678,44 @@ function useSkill(teamIndex, memberIndex, skillType = "member") {
   const team = state.teams[teamIndex];
   const member = team.members[memberIndex];
   const skill = getSkillData(member, skillType);
-  const canUseMember = skillType === "member" && isMemberSkillReady(member);
-  const canUseAssist = skillType === "assist" && isAssistReady(member);
-  if (!canUseMember && !canUseAssist) return;
 
+  const canUseMember =
+    skillType === "member" && isMemberSkillReady(member);
+
+  const canUseAssist =
+    skillType === "assist" && isAssistReady(member);
+
+  if (!canUseMember && !canUseAssist) {
+    return;
+  }
+
+  // スキル効果を取得
+  const skillEffect = getSkillEffect(skill);
+
+  // リダチェンの場合は、先に交換先を選択する
+  let leaderChangeTarget = null;
+
+  if (skillEffect === "leaderChange") {
+    leaderChangeTarget = selectLeaderChangeTarget(teamIndex);
+
+    // キャンセルされた場合はスキルを使わない
+    if (leaderChangeTarget === null) {
+      return;
+    }
+  }
+
+  // ここから実際にスキルを使用
   pushHistory();
-  const usedName = skillType === "assist" 
-  ? getSkillName(skill) 
-  : getDisplayMemberName(teamIndex, memberIndex, member);
+
+  const usedName =
+    skillType === "assist"
+      ? getSkillName(skill)
+      : getDisplayMemberName(
+          teamIndex,
+          memberIndex,
+          member
+        );
+
   let logName = usedName;
 
   if (
@@ -571,21 +723,49 @@ function useSkill(teamIndex, memberIndex, skillType = "member") {
     skill.phases &&
     skill.phases.length > 1
   ) {
-  const phaseMarks = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
+    const phaseMarks = [
+      "①",
+      "②",
+      "③",
+      "④",
+      "⑤",
+      "⑥",
+      "⑦",
+      "⑧",
+      "⑨",
+      "⑩"
+    ];
 
-  logName =
-    `${member.name}${phaseMarks[skill.phaseIndex] ?? `(${skill.phaseIndex + 1})`}`;
+    logName =
+      `${member.name}${
+        phaseMarks[skill.phaseIndex]
+        ?? `(${skill.phaseIndex + 1})`
+      }`;
   }
+
   const usedHaste = getSkillHaste(skill);
+
+  // スキルの段階を進める
   if (skillType === "assist") {
     advanceSkillPhase(member);
     advanceSkillPhase(member.assist);
   } else {
     advanceSkillPhase(member);
   }
+
+  // ヘイスト・遅延
   if (usedHaste !== 0) {
     applyHaste(teamIndex, usedHaste);
   }
+
+  // リダチェン
+  if (
+    skillEffect === "leaderChange" &&
+    leaderChangeTarget !== null
+  ) {
+    changeLeader(teamIndex, leaderChangeTarget);
+  }
+
   let effectText = "";
 
   if (usedHaste > 0) {
@@ -594,9 +774,14 @@ function useSkill(teamIndex, memberIndex, skillType = "member") {
     effectText = ` ${Math.abs(usedHaste)}遅延`;
   }
 
+  if (skillEffect === "leaderChange") {
+    effectText += " リダチェン";
+  }
+
   addLog(
     `${team.name} ${logName}${effectText}`
   );
+
   render();
 }
 
@@ -716,11 +901,18 @@ function loadPhaseIntoEditor(skill, phaseIndex) {
   elements.editName.value = phase.name;
   elements.editMaxCd.value = phase.maxCd;
   elements.editHaste.value = phase.haste;
+  elements.editSkillEffect.value = phase.effect ?? "none";
 }
 
 function openFloorEditor() {
   elements.floorEditTarget.value =
     state.floorCount;
+
+  const action = state.floorActions[state.floorCount];
+  elements.floorActionType.value = action?.type ?? "none";
+  elements.floorActionValue.value = action?.value ?? 1;
+  elements.floorSuperResolve.checked = !!action?.superResolve;
+  elements.floorSuperResolveCount.value = getSuperResolveCount(action) || 1;
 
   elements.floorDialog.showModal();
 }
@@ -741,8 +933,11 @@ function saveCurrentFloorAction() {
 
   state.floorActions[floor] = {
     type,
-    value
+    value,
+    superResolve: elements.floorSuperResolve.checked,
+    superResolveCount: clampNumber(elements.floorSuperResolveCount.value, 1, 9)
   };
+  delete state.superResolveUses[floor];
   render();
 }
 
@@ -837,8 +1032,14 @@ elements.returnSetup.addEventListener("click", () => {
 
   pushHistory();
 
+  // 戦闘開始前の編成に戻す
   state.teams = deepClone(
-    state.setupSnapshot
+    state.setupSnapshot.teams
+  );
+
+  // 戦闘開始前のリーダー位置に戻す
+  state.leaderIndices = deepClone(
+    state.setupSnapshot.leaderIndices
   );
 
   state.isBattleStarted = false;
@@ -999,6 +1200,16 @@ function renderFloorActions() {
 
     const action = state.floorActions[floor];
     console.log(floor,action);
+    const actionText =
+      action.type === "delay"
+        ? `遅延 ${action.value}`
+        : action.type === "haste"
+          ? `ヘイスト ${action.value}`
+          : "先制なし";
+    const superResolveText =
+      action.superResolve
+        ? ` / 超根性 ${getSuperResolveCount(action)}回`
+        : "";
 
     const row =
       document.createElement("div");
@@ -1009,11 +1220,7 @@ function renderFloorActions() {
     row.innerHTML = `
       <span>
         ${floor}F :
-        ${
-          action.type === "delay"
-            ? `遅延 ${action.value}`
-            : `ヘイスト ${action.value}`
-        }
+        ${actionText}${superResolveText}
       </span>
 
       <button
@@ -1087,6 +1294,19 @@ function savePreset() {
   render();
 }
 
+function loadPreset() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+
+  if (!saved) {
+    alert("保存データがありません");
+    return;
+  }
+
+  pushHistory();
+  restore(saved);
+  render();
+}
+
 function saveTeamPreset() {
   updateFromInputs();
 
@@ -1095,7 +1315,7 @@ function saveTeamPreset() {
   );
 
   if (!slot)return;
-  slot = slot.replace(/[０-９]/g,s =>
+  slot = slot.replace(/[0-9]/g,s =>
     String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
   );
 
@@ -1136,7 +1356,7 @@ function loadTeamPreset() {
   );
 
   if (!slot) return;
-    slot = slot.replace(/[０-９]/g, s =>
+    slot = slot.replace(/[0-9]/g, s =>
       String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
   );
 
@@ -1156,18 +1376,221 @@ function loadTeamPreset() {
   alert(`「${presets[slot].name}」を読み込みました`);
 }
 
-function resetAll() {
+function getTeamPresets() {
+  try {
+    return JSON.parse(localStorage.getItem(TEAM_PRESET_KEY) || "{}");
+  } catch (error) {
+    return {};
+  }
+}
+
+function setTeamPresets(presets) {
+  localStorage.setItem(TEAM_PRESET_KEY, JSON.stringify(presets));
+}
+
+function getPresetDefaultName(slot) {
+  return `編成${slot}`;
+}
+
+function renderTeamPresetList() {
+  if (!elements.teamPresetList) return;
+
+  const presets = getTeamPresets();
+  elements.teamPresetList.textContent = "";
+
+  for (let slot = 1; slot <= PRESET_SLOT_COUNT; slot++) {
+    const preset = presets[slot];
+    const row = document.createElement("div");
+    row.className = "team-preset-row";
+
+    const name = document.createElement("input");
+    name.className = "team-preset-name team-preset-name-input";
+    name.dataset.slot = String(slot);
+    name.type = "text";
+    name.value = preset?.name || getPresetDefaultName(slot);
+    name.placeholder = `${slot} 未使用`;
+
+    const buttons = document.createElement("div");
+    buttons.className = "team-preset-buttons";
+
+    const saveButton = document.createElement("button");
+    saveButton.type = "button";
+    saveButton.textContent = "保存";
+    saveButton.addEventListener("click", () => saveTeamPresetSlot(slot));
+
+    const loadButton = document.createElement("button");
+    loadButton.type = "button";
+    loadButton.textContent = "読込";
+    loadButton.disabled = !preset;
+    loadButton.addEventListener("click", () => loadTeamPresetSlot(slot));
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.textContent = "削除";
+    deleteButton.disabled = !preset;
+    deleteButton.addEventListener("click", () => deleteTeamPresetSlot(slot));
+
+    buttons.append(saveButton, loadButton, deleteButton);
+    row.append(name, buttons);
+    elements.teamPresetList.append(row);
+  }
+}
+
+function openTeamPresetDialog() {
+  renderTeamPresetList();
+  elements.teamPresetDialog.showModal();
+}
+
+function closeTeamPresetDialog() {
+  elements.teamPresetDialog.close();
+}
+
+function saveTeamPresetSlot(slot) {
+  updateFromInputs();
+
+  const presets = getTeamPresets();
+  const input = elements.teamPresetList.querySelector(
+    `.team-preset-name-input[data-slot="${slot}"]`
+  );
+  const presetName = input?.value.trim() || getPresetDefaultName(slot);
+
+  presets[slot] = {
+    name: presetName,
+    savedAt: new Date().toISOString(),
+    teams: deepClone(state.teams),
+    leaderIndices:deepClone(state.leaderIndices)
+  };
+
+  setTeamPresets(presets);
+  renderTeamPresetList();
+}
+
+function loadTeamPresetSlot(slot) {
+  const presets = getTeamPresets();
+  const preset = presets[slot];
+
+  if (!preset) {
+    alert("このスロットには保存データがありません");
+    return;
+  }
+
   pushHistory();
+  state.teams = deepClone(preset.teams);
+  state.leaderIndices = deepClone(
+    preset.leaderIndices ?? [0,5]
+  )
+  state.isBattleStarted = false;
+  state.setupSnapshot = null;
+  ensureTeams();
+  render();
+  closeTeamPresetDialog();
+}
+
+function deleteTeamPresetSlot(slot) {
+  const presets = getTeamPresets();
+
+  if (!presets[slot]) return;
+
+  delete presets[slot];
+  setTeamPresets(presets);
+  renderTeamPresetList();
+}
+
+function saveTeamPreset() {
+  openTeamPresetDialog();
+}
+
+function loadTeamPreset() {
+  openTeamPresetDialog();
+}
+
+function resetProgressState() {
   state.activePlayer = 0;
   state.actionCount = 0;
   state.floorCount = 1;
   state.aTurnCount = 0;
   state.bTurnCount = 0;
   state.enemyTurns = 3;
+  state.superResolveUses = {};
+
+  // リーダー位置も初期状態に戻す
+  state.leaderIndices = [0, 5];
+
+  state.isBattleStarted = false;
+  state.setupSnapshot = null;
+}
+
+function resetAllState() {
+  resetProgressState();
   state.floorActions = {};
   state.teams = [makeDefaultTeam(0), makeDefaultTeam(1)];
   state.log = ["-----1F-----"];
+}
+
+function openResetDialog() {
+  elements.resetTeams.checked = true;
+  elements.resetProgress.checked = true;
+  elements.resetLog.checked = true;
+  elements.resetFloorActions.checked = true;
+  elements.resetSavedTeams.checked = false;
+  elements.resetDialog.showModal();
+}
+
+function closeResetDialog() {
+  elements.resetDialog.close();
+}
+
+function resetSelectedSections(event) {
+  event.preventDefault();
+
+  const shouldResetTeams = elements.resetTeams.checked;
+  const shouldResetProgress = elements.resetProgress.checked;
+  const shouldResetLog = elements.resetLog.checked;
+  const shouldResetFloorActions = elements.resetFloorActions.checked;
+  const shouldResetSavedTeams = elements.resetSavedTeams.checked;
+
+  if (
+    !shouldResetTeams &&
+    !shouldResetProgress &&
+    !shouldResetLog &&
+    !shouldResetFloorActions &&
+    !shouldResetSavedTeams
+  ) {
+    closeResetDialog();
+    return;
+  }
+
+  pushHistory();
+
+  if (shouldResetTeams) {
+    state.teams = [makeDefaultTeam(0), makeDefaultTeam(1)];
+    state.setupSnapshot = null;
+    state.isBattleStarted = false;
+  }
+
+  if (shouldResetProgress) {
+    resetProgressState();
+  }
+
+  if (shouldResetLog) {
+    state.log = ["-----1F-----"];
+  }
+
+  if (shouldResetFloorActions) {
+    state.floorActions = {};
+    state.superResolveUses = {};
+  }
+
+  if (shouldResetSavedTeams) {
+    localStorage.removeItem(TEAM_PRESET_KEY);
+  }
+
   render();
+  closeResetDialog();
+}
+
+function resetAll() {
+  openResetDialog();
 }
 
 document.querySelector("#advanceTurn").addEventListener("click", advanceTurn);
@@ -1185,6 +1608,8 @@ document.querySelector("#loadPreset").addEventListener("click", loadPreset);
 document.querySelector("#resetAll").addEventListener("click", resetAll);
 document.querySelector("#loadTeamPreset").addEventListener("click",loadTeamPreset);
 document.querySelector("#copyLog").addEventListener("click", copyLog);
+elements.resetDialogClose.addEventListener("click", closeResetDialog);
+elements.resetForm.addEventListener("submit", resetSelectedSections);
 document.querySelector("#clearLog").addEventListener("click", () => {
   pushHistory();
   state.log = [];
@@ -1241,6 +1666,7 @@ elements.memberEditForm.addEventListener("submit", (event) => {
   phase.name = elements.editName.value.trim() || `スキル${phaseIndex + 1}`;
   phase.maxCd = clampNumber(elements.editMaxCd.value, 1, 99);
   phase.haste = clampNumber(elements.editHaste.value, -99, 99);
+  phase.effect = elements.editSkillEffect.value;
 
   skill.phaseIndex = phaseIndex;
   skill.currentCd = Math.min(
@@ -1257,16 +1683,8 @@ elements.memberEditForm.addEventListener("submit", (event) => {
 
   render();
 });
-elements.saveTeamPreset.addEventListener("click", () => {
-
-    elements.teamPresetDialog.showModal();
-
-});
-elements.teamPresetDialogClose.addEventListener("click", () => {
-
-    elements.teamPresetDialog.close();
-
-});
+elements.saveTeamPreset.addEventListener("click", saveTeamPreset);
+elements.teamPresetDialogClose.addEventListener("click", closeTeamPresetDialog);
 elements.saveFloorAction.addEventListener("click",saveFloorAction);
 elements.saveAndNextFloor.addEventListener("click",saveAndNextFloor);
 elements.editSkillMode.addEventListener("change", () => {
@@ -1324,25 +1742,19 @@ elements.startBattle.addEventListener(
 
    resetAllSkillsToFirstPhase();
 
-   state.setupSnapshot = deepClone(state.teams);
+   state.setupSnapshot = {
+    teams: deepClone(state.teams),
+    leaderIndices:deepClone(state.leaderIndices),
+   };
 
    applyBoosts(0);
 
    state.isBattleStarted = true;
+   state.superResolveUses = {};
 
    const action = state.floorActions[1];
 
-    if (action) {
-      if (action.type === "haste") {
-        addLog(`1F先制: ${action.value}ヘイスト`);
-        applyPreemptiveHaste(action.value);
-      }
-
-      if (action.type === "delay") {
-        addLog(`1F先制: ${action.value}ターン遅延`);
-        applyPreemptiveDelay(action.value);
-      }
-    }
+    applyFloorAction(1, action, "1F先制");
 
     render();
 
@@ -1358,4 +1770,5 @@ if (sharedBoostContainer) {
   );
 }
 
-resetAll();
+resetAllState();
+render();

@@ -624,6 +624,18 @@ h2 {
   font-weight: 800;
 }
 
+.reset-options {
+  display: grid;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.reset-options .switch {
+  justify-content: flex-start;
+  min-height: 34px;
+  font-size: 14px;
+}
+
 @media (max-width: 1180px) {
   .receipt-board {
     grid-template-columns: minmax(150px, 180px) minmax(0, 1fr);

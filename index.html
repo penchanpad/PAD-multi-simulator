@@ -12,9 +12,16 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">Puzzle & Dragons</p>
-          <h1>マルチスキルターンver2</h1>
+          <h1>マルチスキルシュミver2</h1>
         </div>
         <div class="header-actions" aria-label="データ操作">
+          <button class="icon-button"
+                  id="modeToggle"
+                  type="button"
+                  title="ソロ/マルチ切替">
+            マルチ
+          </button>
+
           <button class="icon-button"
                   id="savePreset"
                   type="button"
@@ -197,6 +204,13 @@
             ヘイスト
             <input id="editHaste" type="number" min="-99" max="99" />
           </label>
+          <label>
+           スキル効果
+           <select id="editSkillEffect">
+             <option value="none">なし</option>
+             <option value="leaderChange">リダチェン</option>
+           </select>
+          </label>
           <label id="delayLatentPanel">
             潜在遅延耐性
             <input id="editDelayLatent" type="number" min="0" max="8" />
@@ -330,6 +344,7 @@
     <label>
       種類
       <select id="floorActionType">
+        <option value="none">なし</option>
         <option value="delay">遅延</option>
         <option value="haste">ヘイスト</option>
       </select>
@@ -342,6 +357,22 @@
         type="number"
         min="1"
         max="99"
+        value="1"
+      >
+    </label>
+
+    <label class="switch">
+      <input id="floorSuperResolve" type="checkbox">
+      超根性
+    </label>
+
+    <label>
+      超根性回数
+      <input
+        id="floorSuperResolveCount"
+        type="number"
+        min="1"
+        max="9"
         value="1"
       >
     </label>
@@ -361,6 +392,88 @@
     </div>
   </form>
 </dialog>
+  <dialog class="edit-dialog" id="teamPresetDialogV2">
+    <div class="edit-form">
+      <div class="dialog-head">
+        <div>
+          <span class="dialog-kicker">編成管理</span>
+          <h2>編成保存</h2>
+        </div>
+        <button
+          id="teamPresetDialogCloseV2"
+          class="dialog-close"
+          type="button"
+          aria-label="閉じる">
+          ×
+        </button>
+      </div>
+      <div id="teamPresetListV2"></div>
+    </div>
+  </dialog>
+  <dialog class="edit-dialog" id="teamPresetDialogV3">
+    <div class="edit-form">
+      <div class="dialog-head">
+        <div>
+          <span class="dialog-kicker">TEAM PRESETS</span>
+          <h2>Team Save</h2>
+        </div>
+        <button
+          id="teamPresetDialogCloseV3"
+          class="dialog-close"
+          type="button"
+          aria-label="Close">
+          x
+        </button>
+      </div>
+      <div id="teamPresetListV3"></div>
+    </div>
+  </dialog>
+  <dialog class="edit-dialog" id="resetDialog">
+    <form method="dialog" class="edit-form" id="resetForm">
+      <div class="dialog-head">
+        <div>
+          <span class="dialog-kicker">リセット範囲</span>
+          <h2>リセット</h2>
+        </div>
+        <button
+          id="resetDialogClose"
+          class="dialog-close"
+          type="button"
+          aria-label="閉じる">
+          ×
+        </button>
+      </div>
+
+      <div class="reset-options">
+        <label class="switch">
+          <input id="resetTeams" type="checkbox" checked>
+          編成
+        </label>
+        <label class="switch">
+          <input id="resetProgress" type="checkbox" checked>
+          進行状況
+        </label>
+        <label class="switch">
+          <input id="resetLog" type="checkbox" checked>
+          履歴
+        </label>
+        <label class="switch">
+          <input id="resetFloorActions" type="checkbox" checked>
+          先制・超根性
+        </label>
+        <label class="switch">
+          <input id="resetSavedTeams" type="checkbox">
+          保存済み編成
+        </label>
+      </div>
+
+      <div class="dialog-actions">
+        <button id="resetSelected" class="primary-action danger" type="submit">
+          選択した範囲をリセット
+        </button>
+      </div>
+    </form>
+  </dialog>
   <script src="./app.js"></script>
   </body>
 </html>
