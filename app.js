@@ -120,9 +120,12 @@ function snapshot() {
     leaderIndices: state.leaderIndices,
     log: state.log,
     floorActions: state.floorActions,
-    superResolveUses: state.superResolveUses
+    superResolveUses: state.superResolveUses,
+    isBattleStarted: state.isBattleStarted,
+    setupSnapshot: state.setupSnapshot
   });
 }
+
 function createTeamPresetData() {
   return {
     teams: structuredClone(state.teams),
@@ -143,8 +146,24 @@ function restore(serialized) {
   state.log = data.log ?? [];
   state.floorActions = data.floorActions ?? {};
   state.superResolveUses = data.superResolveUses ?? {};
+  state.isBattleStarted = data.isBattleStarted ?? false;
+  state.setupSnapshot = data.setupSnapshot ?? null;
   state.history = [];
   ensureTeams();
+}
+
+function autoSaveState() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      snapshot()
+    );
+  } catch (error) {
+    console.error(
+      "自動保存に失敗しました",
+      error
+    );
+  }
 }
 
 function pushHistory() {
@@ -1286,6 +1305,7 @@ function render() {
   !state.isBattleStarted;
   renderLog();
   renderFloorActions();
+  autoSaveState();
 }
 
 function savePreset() {
@@ -1771,5 +1791,22 @@ if (sharedBoostContainer) {
   );
 }
 
-resetAllState();
+const autoSavedState =
+  localStorage.getItem(STORAGE_KEY);
+
+if (autoSavedState) {
+  try {
+    restore(autoSavedState);
+  } catch (error) {
+    console.error(
+      "自動保存データの読み込みに失敗しました",
+      error
+    );
+
+    resetAllState();
+  }
+} else {
+  resetAllState();
+}
+
 render();
