@@ -1090,7 +1090,7 @@ function savePreset() {
 function saveTeamPreset() {
   updateFromInputs();
 
-  const slot = prompt(
+  let slot = prompt(
     "保存先を入力してください（1～5）"
   );
 
@@ -1183,7 +1183,6 @@ document.querySelector("#undoTurn").addEventListener("click", () => {
 document.querySelector("#savePreset").addEventListener("click", savePreset);
 document.querySelector("#loadPreset").addEventListener("click", loadPreset);
 document.querySelector("#resetAll").addEventListener("click", resetAll);
-document.querySelector("#saveTeamPreset").addEventListener("click",saveTeamPreset);
 document.querySelector("#loadTeamPreset").addEventListener("click",loadTeamPreset);
 document.querySelector("#copyLog").addEventListener("click", copyLog);
 document.querySelector("#clearLog").addEventListener("click", () => {
