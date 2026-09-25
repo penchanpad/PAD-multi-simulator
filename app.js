@@ -1624,8 +1624,6 @@ document.querySelector("#undoTurn").addEventListener("click", () => {
     render();
   }
 });
-document.querySelector("#savePreset").addEventListener("click", savePreset);
-document.querySelector("#loadPreset").addEventListener("click", loadPreset);
 document.querySelector("#resetAll").addEventListener("click", resetAll);
 document.querySelector("#loadTeamPreset").addEventListener("click",loadTeamPreset);
 document.querySelector("#copyLog").addEventListener("click", copyLog);
