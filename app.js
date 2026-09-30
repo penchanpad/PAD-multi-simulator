@@ -60,6 +60,7 @@ const elements = {
   dialogCancel: document.querySelector("#dialogCancel"),
   dialogSlot: document.querySelector("#dialogSlot"),
   editName: document.querySelector("#editName"),
+  editSkillName: document.querySelector("#editSkillName"),
   skillModePanel: document.querySelector("#skillModePanel"),
   editSkillMode: document.querySelector("#editSkillMode"),
   editPhaseCount: document.querySelector("#editPhaseCount"),
@@ -88,6 +89,7 @@ function makeDefaultTeam(index) {
     boosts: 12,
     members: names.map((name, memberIndex) => ({
       name,
+      charactername:name,
       maxCd: memberIndex === 0 ? 20 : 12 + memberIndex,
       currentCd: Math.max(0, (memberIndex === 0 ? 20 : 12 + memberIndex) - 12),
       haste: memberIndex === 0 ? 0 : 0,
@@ -210,8 +212,19 @@ function ensureTeams() {
       if (!member.assist) {
         member.assist = makeDefaultAssist(memberIndex);
       }
-      normalizeSkill(member, member.name || `枠${memberIndex + 1}`);
-      normalizeSkill(member.assist, member.assist.name || `アシスト${memberIndex + 1}`);
+
+      if (!member.characterName) {
+        member.characterName =
+          member.phases?.[0]?.name ||
+          member.name ||
+          `枠${memberIndex + 1}`;
+      }
+
+      normalizeSkill(member, member.characterName || `枠${memberIndex + 1}`);
+      normalizeSkill(
+        member.assist,
+        member.assist.name || `アシスト${memberIndex + 1}`
+      );
     });
   });
   if (state.activePlayer >= 2) {
@@ -459,7 +472,11 @@ function getAssistPercent(member) {
 }
 
 function getDisplayMemberName(teamIndex, memberIndex, member) {
-  return getSkillName(member);
+  if (teamIndex === 1 && memberIndex === 5) {
+    return "リーダー";
+  }
+
+  return member.characterName || getSkillName(member);
 }
 
 function chargeMember(member, amount) {
@@ -917,7 +934,18 @@ function populatePhaseOptions(skill) {
 
 function loadPhaseIntoEditor(skill, phaseIndex) {
   const phase = skill.phases[phaseIndex];
-  elements.editName.value = phase.name;
+
+  const firstPhase = skill.phases[0];
+
+  elements.editName.value =
+    skill.characterName ||
+    firstPhase?.name ||
+    skill.name ||
+    "";
+
+  elements.editSkillName.value =
+    phase.name || `スキル${phaseIndex + 1}`;
+
   elements.editMaxCd.value = phase.maxCd;
   elements.editHaste.value = phase.haste;
   elements.editSkillEffect.value = phase.effect ?? "none";
@@ -1682,7 +1710,15 @@ elements.memberEditForm.addEventListener("submit", (event) => {
   resizeSkillPhases(skill, editTarget.skillType === "assist" ? 1 : elements.editPhaseCount.value);
   const phaseIndex = clampNumber(elements.editPhaseIndex.value, 0, skill.phases.length - 1);
   const phase = skill.phases[phaseIndex];
-  phase.name = elements.editName.value.trim() || `スキル${phaseIndex + 1}`;
+  if (editTarget.skillType === "member") {
+    member.characterName =
+      elements.editName.value.trim() ||
+      member.characterName ||
+      `枠${editTarget.memberIndex + 1}`;
+  }
+  phase.name =
+    elements.editSkillName.value.trim() ||
+    `スキル${phaseIndex + 1}`;
   phase.maxCd = clampNumber(elements.editMaxCd.value, 1, 99);
   phase.haste = clampNumber(elements.editHaste.value, -99, 99);
   phase.effect = elements.editSkillEffect.value;
