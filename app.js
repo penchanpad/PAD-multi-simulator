@@ -1203,7 +1203,16 @@ function renderTeams() {
 
   elements.teams.textContent = "";
 
-  // スマホ用A/B切り替えボタン
+  /*
+   * ==========================
+   * スマホ用表示
+   * ==========================
+   */
+
+  const mobileContainer = document.createElement("div");
+  mobileContainer.className = "mobile-team-container";
+
+  // A編成 / B編成 切り替えボタン
   const mobileSwitch = document.createElement("div");
   mobileSwitch.className = "mobile-team-switch";
 
@@ -1232,9 +1241,9 @@ function renderTeams() {
         });
 
       document
-        .querySelectorAll(".team-card")
-        .forEach((teamCard, index) => {
-          teamCard.classList.toggle(
+        .querySelectorAll(".mobile-sub-list")
+        .forEach((subList, index) => {
+          subList.classList.toggle(
             "mobile-selected",
             index === mobileTeamIndex
           );
@@ -1244,7 +1253,176 @@ function renderTeams() {
     mobileSwitch.append(button);
   });
 
-  elements.teams.append(mobileSwitch);
+  mobileContainer.append(mobileSwitch);
+
+
+  // キャラ / アシストの見出し
+  const mobileHeader = document.createElement("div");
+  mobileHeader.className = "mobile-member-header";
+
+  mobileHeader.innerHTML = `
+    <span>キャラ</span>
+    <span>アシスト</span>
+  `;
+
+  mobileContainer.append(mobileHeader);
+
+
+  /*
+   * ==========================
+   * Aリーダー
+   * ==========================
+   */
+
+  const mobileALeader = document.createElement("div");
+  mobileALeader.className = "mobile-leader-block";
+
+  const mobileALeaderTitle = document.createElement("div");
+  mobileALeaderTitle.className = "mobile-leader-title";
+  mobileALeaderTitle.textContent = "Aリーダー";
+
+  const mobileALeaderRow = document.createElement("div");
+  mobileALeaderRow.className = "mobile-member-pair";
+
+  const aLeaderIndex = getLeaderIndex(0);
+
+  const aLeaderMember = createSkillRow(
+    memberTemplate,
+    0,
+    aLeaderIndex,
+    0,
+    "member"
+  );
+
+  const aLeaderAssist = createSkillRow(
+    memberTemplate,
+    0,
+    aLeaderIndex,
+    0,
+    "assist"
+  );
+
+  mobileALeaderRow.append(
+    aLeaderMember,
+    aLeaderAssist
+  );
+
+  mobileALeader.append(
+    mobileALeaderTitle,
+    mobileALeaderRow
+  );
+
+  mobileContainer.append(mobileALeader);
+
+
+  /*
+   * ==========================
+   * A/Bサブ切り替え部分
+   * ==========================
+   */
+
+  state.teams.forEach((team, teamIndex) => {
+    const mobileSubList = document.createElement("div");
+
+    mobileSubList.className = "mobile-sub-list";
+
+    mobileSubList.classList.toggle(
+      "mobile-selected",
+      teamIndex === mobileTeamIndex
+    );
+
+    const subIndices = [1, 2, 3, 4];
+
+    subIndices.forEach((memberIndex, subIndex) => {
+      const mobileRow =
+        document.createElement("div");
+
+      mobileRow.className = "mobile-member-pair";
+
+      const mobileMember = createSkillRow(
+        memberTemplate,
+        teamIndex,
+        memberIndex,
+        subIndex,
+        "member"
+      );
+
+      const mobileAssist = createSkillRow(
+        memberTemplate,
+        teamIndex,
+        memberIndex,
+        subIndex,
+        "assist"
+      );
+
+      mobileRow.append(
+        mobileMember,
+        mobileAssist
+      );
+
+      mobileSubList.append(mobileRow);
+    });
+
+    mobileContainer.append(mobileSubList);
+  });
+
+
+  /*
+   * ==========================
+   * Bリーダー
+   * ==========================
+   */
+
+  const mobileBLeader = document.createElement("div");
+  mobileBLeader.className = "mobile-leader-block";
+
+  const mobileBLeaderTitle = document.createElement("div");
+  mobileBLeaderTitle.className = "mobile-leader-title";
+  mobileBLeaderTitle.textContent = "Bリーダー";
+
+  const mobileBLeaderRow = document.createElement("div");
+  mobileBLeaderRow.className = "mobile-member-pair";
+
+  const bLeaderIndex = getLeaderIndex(1);
+
+  const bLeaderMember = createSkillRow(
+    memberTemplate,
+    1,
+    bLeaderIndex,
+    0,
+    "member"
+  );
+
+  const bLeaderAssist = createSkillRow(
+    memberTemplate,
+    1,
+    bLeaderIndex,
+    0,
+    "assist"
+  );
+
+  mobileBLeaderRow.append(
+    bLeaderMember,
+    bLeaderAssist
+  );
+
+  mobileBLeader.append(
+    mobileBLeaderTitle,
+    mobileBLeaderRow
+  );
+
+  mobileContainer.append(mobileBLeader);
+
+
+  // スマホ用UIを先に追加
+  elements.teams.append(mobileContainer);
+
+
+  /*
+   * ==========================
+   * PC・タブレット用表示
+   * ==========================
+   */
 
   state.teams.forEach((team, teamIndex) => {
     const teamNode =
@@ -1255,56 +1433,42 @@ function renderTeams() {
       teamIndex === state.activePlayer
     );
 
-    teamNode.classList.toggle(
-      "mobile-selected",
-      teamIndex === mobileTeamIndex
-    );
-
-    teamNode.querySelector(".team-name").value = team.name;
+    teamNode.querySelector(".team-name").value =
+      team.name;
 
     const memberList =
       teamNode.querySelector(".member-list");
 
-    const assistList = document.createElement("div");
+    const assistList =
+      document.createElement("div");
 
-    assistList.className = "assist-list";
+    assistList.className =
+      "assist-list";
 
+
+    // B編成だけ先頭に空白を入れる
     if (teamIndex === 1) {
       [assistList, memberList].forEach((list) => {
-        const spacer = document.createElement("div");
+        const spacer =
+          document.createElement("div");
 
-        spacer.className = "member-spacer";
-        spacer.setAttribute("aria-hidden", "true");
+        spacer.className =
+          "member-spacer";
+
+        spacer.setAttribute(
+          "aria-hidden",
+          "true"
+        );
 
         list.append(spacer);
       });
     }
 
-    // スマホ用の「キャラ＋アシスト」縦並び
-    const mobileMemberList =
-      document.createElement("div");
-
-    mobileMemberList.className =
-      "mobile-member-list";
-
-    // 見出し
-    const mobileHeader =
-      document.createElement("div");
-
-    mobileHeader.className =
-      "mobile-member-header";
-
-    mobileHeader.innerHTML = `
-      <span>キャラ</span>
-      <span>アシスト</span>
-    `;
-
-    mobileMemberList.append(mobileHeader);
 
     getVisibleMemberIndices(teamIndex).forEach(
       (memberIndex, visibleIndex) => {
 
-        // PC・タブレット用
+        // アシスト
         assistList.append(
           createSkillRow(
             memberTemplate,
@@ -1315,6 +1479,7 @@ function renderTeams() {
           )
         );
 
+        // キャラ
         memberList.append(
           createSkillRow(
             memberTemplate,
@@ -1324,56 +1489,21 @@ function renderTeams() {
             "member"
           )
         );
-
-        // スマホ用
-        const mobileRow =
-          document.createElement("div");
-
-        mobileRow.className =
-          "mobile-member-pair";
-
-        const mobileMember =
-        createSkillRow(
-          memberTemplate,
-          teamIndex,
-          memberIndex,
-          visibleIndex,
-          "member"
-        );
-
-      const mobileAssist =
-        createSkillRow(
-          memberTemplate,
-          teamIndex,
-          memberIndex,
-          visibleIndex,
-          "assist"
-        );
-
-// スマホ用の行であることを示す
-mobileMember.classList.add("mobile-skill-row");
-mobileAssist.classList.add("mobile-skill-row");
-
-        mobileRow.append(
-          mobileMember,
-          mobileAssist
-        );
-
-        mobileMemberList.append(mobileRow);
       }
     );
+
 
     if (teamIndex === 1) {
       assistList.style.gridRow = "2";
       memberList.style.gridRow = "1";
     }
 
+
     teamNode.insertBefore(
       assistList,
       memberList
     );
 
-    teamNode.append(mobileMemberList);
 
     teamNode
       .querySelector(".team-name")
@@ -1382,6 +1512,7 @@ mobileAssist.classList.add("mobile-skill-row");
         updateFromInputs();
         render();
       });
+
 
     elements.teams.append(teamNode);
   });

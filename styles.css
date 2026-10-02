@@ -961,3 +961,125 @@ h2 {
 .team-preset-buttons button{
   width:70px;
 }
+
+.mobile-team-container {
+  display: none;
+}
+
+@media (max-width: 680px) {
+
+  .team-area .team-card {
+    display: none;
+  }
+
+  .mobile-team-container {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mobile-team-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .mobile-team-button {
+    min-height: 48px;
+    border: 2px solid var(--line);
+    background: #eeeeee;
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .mobile-team-button.active {
+    border-color: #209a54;
+    background: #dff3e7;
+    color: #0d5f34;
+  }
+
+  .mobile-member-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 4px 0;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .mobile-leader-block {
+    display: grid;
+    gap: 4px;
+  }
+
+  .mobile-leader-title {
+    padding: 4px 8px;
+    border-left: 4px solid #209a54;
+    background: #eeeeee;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .mobile-sub-list {
+    display: none;
+    gap: 8px;
+  }
+
+  .mobile-sub-list.mobile-selected {
+    display: grid;
+  }
+
+  .mobile-member-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mobile-member-pair .member-row {
+    min-width: 0;
+  }
+
+  .mobile-member-pair .character-tile {
+    min-height: 105px;
+  }
+
+  .mobile-member-pair .edit-member {
+    min-height: 24px;
+    padding: 0 6px;
+    font-size: 10px;
+  }
+
+}
+
+@media (max-width: 420px) {
+
+  .mobile-team-button {
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .mobile-member-pair {
+    gap: 5px;
+  }
+
+  .mobile-member-pair .character-tile {
+    min-height: 96px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .mobile-member-pair .character-name {
+    font-size: 11px;
+  }
+
+  .mobile-member-pair .turn-text {
+    font-size: 11px;
+  }
+
+}
