@@ -26,9 +26,9 @@ const elements = {
   activePlayerName: document.querySelector("#activePlayerName"),
   returnSetup:document.getElementById("returnSetup"),
   saveTeamPreset: document.getElementById("saveTeamPreset"),
-  teamPresetDialog:document.getElementById("teamPresetDialogV3") || document.getElementById("teamPresetDialogV2") || document.getElementById("teamPresetDialog"),
-  teamPresetDialogClose:document.getElementById("teamPresetDialogCloseV3") || document.getElementById("teamPresetDialogCloseV2") || document.getElementById("teamPresetDialogClose"),
-  teamPresetList: document.getElementById("teamPresetListV3") || document.getElementById("teamPresetListV2") || document.getElementById("teamPresetList"),
+  teamPresetDialog: document.getElementById("teamPresetDialog"),
+  teamPresetDialogClose: document.getElementById("teamPresetDialogClose"),
+  teamPresetList: document.getElementById("teamPresetList"),
   resetDialog: document.getElementById("resetDialog"),
   resetForm: document.getElementById("resetForm"),
   resetDialogClose: document.getElementById("resetDialogClose"),
@@ -1186,7 +1186,6 @@ function createSkillRow(memberTemplate, teamIndex, memberIndex, visibleIndex, sk
   row.querySelector(".max-cd").value = skillMaxCd;
   row.querySelector(".current-cd").value = skill.currentCd;
   row.querySelector(".haste-cd").value = getSkillHaste(skill);
-  row.querySelector(".edit-member").addEventListener("click", () => openMemberEditor(teamIndex, memberIndex, skillType));
   editButton.disabled = state.isBattleStarted;
   editButton.addEventListener("click",()=>openMemberEditor(teamIndex,memberIndex,skillType));
   const useButton = row.querySelector(".use-skill");
@@ -1684,7 +1683,6 @@ document.querySelector("#undoTurn").addEventListener("click", () => {
   }
 });
 document.querySelector("#resetAll").addEventListener("click", resetAll);
-document.querySelector("#loadTeamPreset").addEventListener("click",loadTeamPreset);
 document.querySelector("#copyLog").addEventListener("click", copyLog);
 elements.resetDialogClose.addEventListener("click", closeResetDialog);
 elements.resetForm.addEventListener("submit", resetSelectedSections);
