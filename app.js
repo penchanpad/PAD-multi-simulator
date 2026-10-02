@@ -4,6 +4,8 @@ const TEAM_PRESET_KEY = "pad-team-presets";
 const PRESET_SLOT_COUNT = 5;
 const teamLabels = ["A", "B"];
 
+let mobileTeamIndex = 0;
+
 const state = {
   activePlayer: 0,
   actionCount: 0,
@@ -1119,7 +1121,7 @@ function updateFromInputs() {
     if (boostInput) {
       team.boosts = clampNumber(boostInput.value, 0, 60);
     }
-    teamCard.querySelectorAll(".member-row").forEach((row) => {
+    teamCard.querySelectorAll(".member-row:not(.mobile-skill-row)").forEach((row) => {
       const memberIndex = Number(row.dataset.memberIndex);
       const member = team.members[memberIndex];
       const skillType = row.dataset.skillType || "member";
@@ -1198,39 +1200,188 @@ function createSkillRow(memberTemplate, teamIndex, memberIndex, visibleIndex, sk
 function renderTeams() {
   const teamTemplate = document.querySelector("#teamTemplate");
   const memberTemplate = document.querySelector("#memberTemplate");
+
   elements.teams.textContent = "";
 
+  // スマホ用A/B切り替えボタン
+  const mobileSwitch = document.createElement("div");
+  mobileSwitch.className = "mobile-team-switch";
+
   state.teams.forEach((team, teamIndex) => {
-    const teamNode = teamTemplate.content.firstElementChild.cloneNode(true);
-    teamNode.classList.toggle("active", teamIndex === state.activePlayer);
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "mobile-team-button";
+    button.textContent = `${teamLabels[teamIndex]}編成`;
+
+    button.classList.toggle(
+      "active",
+      teamIndex === mobileTeamIndex
+    );
+
+    button.addEventListener("click", () => {
+      mobileTeamIndex = teamIndex;
+
+      document
+        .querySelectorAll(".mobile-team-button")
+        .forEach((button, index) => {
+          button.classList.toggle(
+            "active",
+            index === mobileTeamIndex
+          );
+        });
+
+      document
+        .querySelectorAll(".team-card")
+        .forEach((teamCard, index) => {
+          teamCard.classList.toggle(
+            "mobile-selected",
+            index === mobileTeamIndex
+          );
+        });
+    });
+
+    mobileSwitch.append(button);
+  });
+
+  elements.teams.append(mobileSwitch);
+
+  state.teams.forEach((team, teamIndex) => {
+    const teamNode =
+      teamTemplate.content.firstElementChild.cloneNode(true);
+
+    teamNode.classList.toggle(
+      "active",
+      teamIndex === state.activePlayer
+    );
+
+    teamNode.classList.toggle(
+      "mobile-selected",
+      teamIndex === mobileTeamIndex
+    );
+
     teamNode.querySelector(".team-name").value = team.name;
 
-    const memberList = teamNode.querySelector(".member-list");
+    const memberList =
+      teamNode.querySelector(".member-list");
+
     const assistList = document.createElement("div");
+
     assistList.className = "assist-list";
+
     if (teamIndex === 1) {
       [assistList, memberList].forEach((list) => {
         const spacer = document.createElement("div");
+
         spacer.className = "member-spacer";
         spacer.setAttribute("aria-hidden", "true");
+
         list.append(spacer);
       });
     }
-    getVisibleMemberIndices(teamIndex).forEach((memberIndex, visibleIndex) => {
-      assistList.append(createSkillRow(memberTemplate, teamIndex, memberIndex, visibleIndex, "assist"));
-      memberList.append(createSkillRow(memberTemplate, teamIndex, memberIndex, visibleIndex, "member"));
-    });
+
+    // スマホ用の「キャラ＋アシスト」縦並び
+    const mobileMemberList =
+      document.createElement("div");
+
+    mobileMemberList.className =
+      "mobile-member-list";
+
+    // 見出し
+    const mobileHeader =
+      document.createElement("div");
+
+    mobileHeader.className =
+      "mobile-member-header";
+
+    mobileHeader.innerHTML = `
+      <span>キャラ</span>
+      <span>アシスト</span>
+    `;
+
+    mobileMemberList.append(mobileHeader);
+
+    getVisibleMemberIndices(teamIndex).forEach(
+      (memberIndex, visibleIndex) => {
+
+        // PC・タブレット用
+        assistList.append(
+          createSkillRow(
+            memberTemplate,
+            teamIndex,
+            memberIndex,
+            visibleIndex,
+            "assist"
+          )
+        );
+
+        memberList.append(
+          createSkillRow(
+            memberTemplate,
+            teamIndex,
+            memberIndex,
+            visibleIndex,
+            "member"
+          )
+        );
+
+        // スマホ用
+        const mobileRow =
+          document.createElement("div");
+
+        mobileRow.className =
+          "mobile-member-pair";
+
+        const mobileMember =
+        createSkillRow(
+          memberTemplate,
+          teamIndex,
+          memberIndex,
+          visibleIndex,
+          "member"
+        );
+
+      const mobileAssist =
+        createSkillRow(
+          memberTemplate,
+          teamIndex,
+          memberIndex,
+          visibleIndex,
+          "assist"
+        );
+
+// スマホ用の行であることを示す
+mobileMember.classList.add("mobile-skill-row");
+mobileAssist.classList.add("mobile-skill-row");
+
+        mobileRow.append(
+          mobileMember,
+          mobileAssist
+        );
+
+        mobileMemberList.append(mobileRow);
+      }
+    );
+
     if (teamIndex === 1) {
       assistList.style.gridRow = "2";
       memberList.style.gridRow = "1";
     }
-    teamNode.insertBefore(assistList, memberList);
 
-    teamNode.querySelector(".team-name").addEventListener("change", () => {
-      pushHistory();
-      updateFromInputs();
-      render();
-    });
+    teamNode.insertBefore(
+      assistList,
+      memberList
+    );
+
+    teamNode.append(mobileMemberList);
+
+    teamNode
+      .querySelector(".team-name")
+      .addEventListener("change", () => {
+        pushHistory();
+        updateFromInputs();
+        render();
+      });
 
     elements.teams.append(teamNode);
   });

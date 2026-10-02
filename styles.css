@@ -772,13 +772,107 @@ h2 {
     grid-template-columns: 1fr 1fr;
   }
 
-  .assist-list,
-  .member-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  /*
+    スマホでは通常のキャラ・アシスト一覧を隠す
+    ↓
+    JavaScriptで作るスマホ専用表示を使う
+  */
+  .team-card .assist-list,
+  .team-card .member-list {
+    display: none;
   }
 
-  .character-tile {
-    min-height: 112px;
+  /* A/B切り替えボタン */
+  .mobile-team-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .mobile-team-button {
+    min-height: 46px;
+    padding: 6px;
+    border: 2px solid var(--line);
+    background: #eeeeee;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .mobile-team-button.active {
+    border-color: #209a54;
+    background: #dff3e6;
+    color: #145c32;
+  }
+
+  /* 選択されていないチームを隠す */
+  .team-card:not(.mobile-selected) {
+    display: none;
+  }
+
+  .team-card.mobile-selected {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .team-card.mobile-selected .team-header {
+    grid-row: auto;
+  }
+
+  /* キャラ・アシストのスマホ表示 */
+  .mobile-member-list {
+    display: grid;
+    gap: 6px;
+  }
+
+  .mobile-member-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 4px 2px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .mobile-member-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .mobile-member-pair .member-row {
+    min-width: 0;
+  }
+
+  .mobile-member-pair .character-tile {
+    aspect-ratio: auto;
+    min-height: 88px;
+    padding: 22px 5px 6px;
+  }
+
+  .mobile-member-pair .character-name {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .mobile-member-pair .turn-text {
+    font-size: 11px;
+  }
+
+  .mobile-member-pair .use-skill {
+    min-height: 34px;
+    font-size: 11px;
+  }
+
+  .mobile-member-pair .edit-member {
+    min-height: 20px;
+    padding: 0 5px;
+    font-size: 9px;
   }
 
   .attack-button,
@@ -804,14 +898,36 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .assist-list,
-  .member-list {
-    grid-template-columns: 1fr;
+  .mobile-team-switch {
+    gap: 4px;
   }
 
-  .character-tile {
-    aspect-ratio: auto;
-    min-height: 92px;
+  .mobile-team-button {
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .mobile-member-pair {
+    gap: 4px;
+  }
+
+  .mobile-member-pair .character-tile {
+    min-height: 82px;
+    padding: 20px 4px 5px;
+  }
+
+  .mobile-member-pair .character-name {
+    font-size: 11px;
+  }
+
+  .mobile-member-pair .turn-text {
+    font-size: 10px;
+  }
+
+  .mobile-member-pair .use-skill {
+    min-height: 32px;
+    padding: 2px;
+    font-size: 10px;
   }
 
   .status-panel strong,
@@ -819,6 +935,7 @@ h2 {
     white-space: normal;
   }
 }
+
 .team-preset-row{
   display:flex;
   justify-content:space-between;
