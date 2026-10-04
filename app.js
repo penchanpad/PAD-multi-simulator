@@ -85,7 +85,11 @@ const editTarget = {
 let editingFloor = 1;
 
 function makeDefaultTeam(index) {
-  const names = ["リーダー", "サブ1", "サブ2", "サブ3", "サブ4", "助っ人"];
+  const names =
+    index === 0
+      ? ["Aリーダー", "Aサブ1", "Aサブ2", "Aサブ3", "Aサブ4", "助っ人"]
+      : ["助っ人","Bサブ1", "Bサブ2", "Bサブ3", "Bサブ4", "Bリーダー"];
+
   return {
     name: `マルチ${teamLabels[index]}`,
     boosts: 12,
@@ -93,7 +97,10 @@ function makeDefaultTeam(index) {
       name,
       characterName: name,
       maxCd: memberIndex === 0 ? 20 : 12 + memberIndex,
-      currentCd: Math.max(0, (memberIndex === 0 ? 20 : 12 + memberIndex) - 12),
+      currentCd: Math.max(
+        0,
+        (memberIndex === 0 ? 20 : 12 + memberIndex) - 12
+      ),
       haste: memberIndex === 0 ? 0 : 0,
       delayLatent: 0,
       delayAwakening: 0
@@ -480,12 +487,20 @@ function getAssistPercent(member) {
 }
 
 function getDisplayMemberName(teamIndex, memberIndex, member) {
-  if (teamIndex === 1 && memberIndex === 5) {
-    return "リーダー";
+  // A編成のリーダー
+  if (teamIndex === 0 && isLeaderSlot(teamIndex, memberIndex)) {
+    return "Aリーダー";
   }
 
+  // B編成のリーダー
+  if (teamIndex === 1 && isLeaderSlot(teamIndex, memberIndex)) {
+    return "Bリーダー";
+  }
+
+  // それ以外は設定したキャラ名を表示
   return member.characterName || getSkillName(member);
 }
+
 
 function chargeMember(member, amount) {
   let remaining = amount;
@@ -1096,12 +1111,9 @@ elements.returnSetup.addEventListener("click", () => {
 
   pushHistory();
 
-  // 戦闘開始前の編成に戻す
   state.teams = deepClone(
     state.setupSnapshot.teams
   );
-
-  // 戦闘開始前のリーダー位置に戻す
   state.leaderIndices = deepClone(
     state.setupSnapshot.leaderIndices
   );
@@ -1267,19 +1279,8 @@ function renderTeams() {
 
   mobileContainer.append(mobileHeader);
 
-
-  /*
-   * ==========================
-   * Aリーダー
-   * ==========================
-   */
-
   const mobileALeader = document.createElement("div");
   mobileALeader.className = "mobile-leader-block";
-
-  const mobileALeaderTitle = document.createElement("div");
-  mobileALeaderTitle.className = "mobile-leader-title";
-  mobileALeaderTitle.textContent = "Aリーダー";
 
   const mobileALeaderRow = document.createElement("div");
   mobileALeaderRow.className = "mobile-member-pair";
@@ -1307,11 +1308,7 @@ function renderTeams() {
     aLeaderAssist
   );
 
-  mobileALeader.append(
-    mobileALeaderTitle,
-    mobileALeaderRow
-  );
-
+  mobileALeader.append(mobileALeaderRow);
   mobileContainer.append(mobileALeader);
 
 
@@ -1366,19 +1363,8 @@ function renderTeams() {
     mobileContainer.append(mobileSubList);
   });
 
-
-  /*
-   * ==========================
-   * Bリーダー
-   * ==========================
-   */
-
   const mobileBLeader = document.createElement("div");
   mobileBLeader.className = "mobile-leader-block";
-
-  const mobileBLeaderTitle = document.createElement("div");
-  mobileBLeaderTitle.className = "mobile-leader-title";
-  mobileBLeaderTitle.textContent = "Bリーダー";
 
   const mobileBLeaderRow = document.createElement("div");
   mobileBLeaderRow.className = "mobile-member-pair";
@@ -1406,11 +1392,7 @@ function renderTeams() {
     bLeaderAssist
   );
 
-  mobileBLeader.append(
-    mobileBLeaderTitle,
-    mobileBLeaderRow
-  );
-
+  mobileBLeader.append(mobileBLeaderRow);
   mobileContainer.append(mobileBLeader);
 
 
@@ -1873,8 +1855,6 @@ function resetProgressState() {
   state.bTurnCount = 0;
   state.enemyTurns = 3;
   state.superResolveUses = {};
-
-  // リーダー位置も初期状態に戻す
   state.leaderIndices = [0, 5];
 
   state.isBattleStarted = false;
