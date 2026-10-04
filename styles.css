@@ -1082,4 +1082,31 @@ h2 {
     font-size: 11px;
   }
 
+  .floor-action-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.floor-action-row > span {
+  flex: 1;
+  min-width: 160px;
+}
+
+.edit-floor-action,
+.delete-floor-action {
+  min-width: 52px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.edit-floor-action {
+  background: #eeeeee;
+}
+
+.delete-floor-action {
+  background: #f5dede;
+}
 }
