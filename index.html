@@ -245,16 +245,6 @@
             <option value="haste">ヘイスト</option>
           </select>
         </label>
-        
-        <label>
-          対象
-          <select id="floorActionTarget">
-            <option value="breaker">突破側の全員</option>
-            <option value="breakerLeader">突破側のリーダー</option>
-            <option value="otherLeader">もう一方のリーダー</option>
-            <option value="all">全員</option>
-          </select>
-        </label>
 
         <label>
           数値
@@ -266,6 +256,79 @@
             value="1"
           >
         </label>
+
+        <div class="floor-target-section">
+
+          <div class="field-label">対象</div>
+
+          <div class="target-members">
+
+            <label class="target-member-all">
+              <input
+                type="checkbox"
+                class="floor-target"
+                data-role="all"
+              >
+              全員
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="floor-target"
+                data-role="leader"
+              >
+              リーダー
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="floor-target"
+                data-role="sub1"
+              >
+              サブ1
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="floor-target"
+                data-role="sub2"
+              >
+              サブ2
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="floor-target"
+                data-role="sub3"
+              >
+              サブ3
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="floor-target"
+                data-role="sub4"
+              >
+              サブ4
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="floor-target"
+                data-role="friend"
+              >
+              助っ人
+            </label>
+
+          </div>
+
+        </div>
 
         <label class="switch">
           <input id="floorSuperResolve" type="checkbox">

@@ -46,8 +46,9 @@ const elements = {
   floorDialogTitle: document.querySelector("#floorDialogTitle"),
   floorDialogCancel: document.querySelector("#floorDialogCancel"),
   floorActionType: document.querySelector("#floorActionType"),
-  floorActionTarget: document.querySelector("#floorActionTarget"),
   floorActionValue: document.querySelector("#floorActionValue"),
+  floorTargets: document.querySelectorAll(".floor-target"),
+  floorTargetAll: document.querySelectorAll(".floor-target-all"),
   floorSuperResolve: document.querySelector("#floorSuperResolve"),
   floorSuperResolveCount: document.querySelector("#floorSuperResolveCount"),
   floorActionList:document.querySelector("#floorActionList"),
@@ -387,6 +388,74 @@ function getLeaderIndex(teamIndex) {
   return state.leaderIndices[teamIndex]??(teamIndex === 0 ? 0 : 5);
 }
 
+function getMemberIndexByRole(teamIndex, role) {
+
+  // リーダー
+  if (role === "leader") {
+    return getLeaderIndex(teamIndex);
+  }
+
+  // 助っ人
+  if (role === "friend") {
+
+    if (teamIndex === 0) {
+      return 5;
+    }
+
+    return 0;
+  }
+
+  // サブ
+  if (role.startsWith("sub")) {
+
+    const subNumber =
+      Number(role.replace("sub", ""));
+
+    const leaderIndex =
+      getLeaderIndex(teamIndex);
+
+    const subIndices =
+      [1, 2, 3, 4]
+        .filter(index => index !== leaderIndex);
+
+    return subIndices[subNumber - 1] ?? null;
+  }
+
+  return null;
+}
+
+function getMemberIndexByRole(teamIndex, role) {
+
+  if (role === "leader") {
+    return getLeaderIndex(teamIndex);
+  }
+
+  if (role === "friend") {
+
+    // A側の助っ人は6番目
+    if (teamIndex === 0) {
+      return 5;
+    }
+
+    // B側の助っ人は1番目
+    return 0;
+  }
+
+  if (role.startsWith("sub")) {
+
+    const subNumber =
+      Number(
+        role.replace("sub", "")
+      );
+
+    const subIndices = [1, 2, 3, 4];
+
+    return subIndices[subNumber - 1] ?? null;
+  }
+
+  return null;
+}
+
 function changeLeader(teamIndex, targetIndex) {
   const team = state.teams[teamIndex];
 
@@ -541,51 +610,70 @@ function delayTeam(teamIndex, amount){
     });
 }
 
-function applyPreemptiveDelay(amount, target = "breaker") {
-  const breakerTeam = (state.activePlayer + 1) % 2;
-  const otherTeam = (breakerTeam + 1) % 2;
+function applyPreemptiveDelay(
+  amount,
+  teamIndex,
+  targets = ["all"]
+) {
 
-  // 両チーム全員
-  if (target === "all") {
-    state.teams.forEach(team => {
-      team.members.forEach(member => {
-        delayMember(member, amount);
-        delayAssist(member.assist, amount);
-      });
-    });
+  const targetSet =
+    new Set(targets);
 
-    return;
-  }
+  // 全員の場合
+  if (targetSet.has("all")) {
 
-  // 突破側の全員
-  if (target === "breaker") {
-    state.teams[breakerTeam].members.forEach(member => {
-      delayMember(member, amount);
-      delayAssist(member.assist, amount);
-    });
+    state.teams[teamIndex].members.forEach(
+      (member) => {
 
-    return;
-  }
+        delayMember(
+          member,
+          amount
+        );
 
-  // 突破側のリーダー
-  if (target === "breakerLeader") {
-    const leaderIndex = getLeaderIndex(breakerTeam);
-    const leader = state.teams[breakerTeam].members[leaderIndex];
+        delayAssist(
+          member.assist,
+          amount
+        );
 
-    delayMember(leader, amount);
-    delayAssist(leader.assist, amount);
+      }
+    );
 
     return;
   }
 
-  // もう一方のリーダー
-  if (target === "otherLeader") {
-    const leaderIndex = getLeaderIndex(otherTeam);
-    const leader = state.teams[otherTeam].members[leaderIndex];
+  // リーダー・サブ・助っ人から
+  // 選ばれたキャラだけ処理
+  targetSet.forEach((role) => {
 
-    delayMember(leader, amount);
-    delayAssist(leader.assist, amount);
-  }
+    const memberIndex =
+      getMemberIndexByRole(
+        teamIndex,
+        role
+      );
+
+    if (memberIndex === null) {
+      return;
+    }
+
+    const member =
+      state.teams[teamIndex]
+        .members[memberIndex];
+
+    if (!member) {
+      return;
+    }
+
+    delayMember(
+      member,
+      amount
+    );
+
+    delayAssist(
+      member.assist,
+      amount
+    );
+
+  });
 }
 
 function getTotalDelayResist(member) {
@@ -596,49 +684,59 @@ function getTotalDelayResist(member) {
   );
 }
 
+function applyPreemptiveHaste(
+  amount,
+  teamIndex,
+  targets = ["all"]
+) {
 
+  const targetSet =
+    new Set(targets);
 
-function applyPreemptiveHaste(amount, target = "breaker") {
-  const breakerTeam = (state.activePlayer + 1) % 2;
-  const otherTeam = (breakerTeam + 1) % 2;
+  // 全員の場合
+  if (targetSet.has("all")) {
 
-  // 両チーム全員
-  if (target === "all") {
-    state.teams.forEach(team => {
-      team.members.forEach(member => {
-        chargeMember(member, amount);
-      });
-    });
+    state.teams[teamIndex].members.forEach(
+      (member) => {
 
-    return;
-  }
+        chargeMember(
+          member,
+          amount
+        );
 
-  // 突破側の全員
-  if (target === "breaker") {
-    state.teams[breakerTeam].members.forEach(member => {
-      chargeMember(member, amount);
-    });
-
-    return;
-  }
-
-  // 突破側のリーダー
-  if (target === "breakerLeader") {
-    const leaderIndex = getLeaderIndex(breakerTeam);
-    const leader = state.teams[breakerTeam].members[leaderIndex];
-
-    chargeMember(leader, amount);
+      }
+    );
 
     return;
   }
 
-  // もう一方のリーダー
-  if (target === "otherLeader") {
-    const leaderIndex = getLeaderIndex(otherTeam);
-    const leader = state.teams[otherTeam].members[leaderIndex];
+  // 選択されたキャラだけ処理
+  targetSet.forEach((role) => {
 
-    chargeMember(leader, amount);
-  }
+    const memberIndex =
+      getMemberIndexByRole(
+        teamIndex,
+        role
+      );
+
+    if (memberIndex === null) {
+      return;
+    }
+
+    const member =
+      state.teams[teamIndex]
+        .members[memberIndex];
+
+    if (!member) {
+      return;
+    }
+
+    chargeMember(
+      member,
+      amount
+    );
+
+  });
 }
 
 function getSuperResolveCount(action) {
@@ -659,28 +757,51 @@ function useSuperResolve(floor, action) {
   addLog(`${floor}F 超根性発動 ${used}/${total}`);
 }
 
-function applyFloorAction(floor, action, prefix = "先制") {
-  if (!action) return;
+function applyFloorAction(
+  floor,
+  action,
+  teamIndex,
+  prefix = "先制"
+) {
 
-  if (action.superResolve) {
-    addLog(`${floor}F 超根性 ${getSuperResolveCount(action)}回`);
+  if (!action) {
+    return;
   }
 
+  if (action.superResolve) {
+
+    addLog(
+      `${floor}F 超根性 ${getSuperResolveCount(action)}回`
+    );
+
+  }
+
+  const targets =
+    action.targets ?? ["all"];
+
   if (action.type === "haste") {
-    addLog(`${prefix}: ${action.value}ヘイスト`);
+
+    addLog(
+      `${prefix}: ${action.value}ヘイスト`
+    );
 
     applyPreemptiveHaste(
       action.value,
-      action.target ?? "breaker"
+      teamIndex,
+      targets
     );
   }
 
   if (action.type === "delay") {
-    addLog(`${prefix}: スキル遅延 ${action.value}`);
+
+    addLog(
+      `${prefix}: スキル遅延 ${action.value}`
+    );
 
     applyPreemptiveDelay(
       action.value,
-      action.target ?? "breaker"
+      teamIndex,
+      targets
     );
   }
 }
@@ -765,8 +886,16 @@ function breakthroughTurn() {
 
   pushHistory();
 
+  // 突破したチームを記録
+  // このチームが次の階層の先制を受ける
+  const preemptiveTeam =
+    state.activePlayer;
+
   // 現在のプレイヤーのスキルを1ターン進める
-  chargeForTurn(state.activePlayer, 1);
+  chargeForTurn(
+    state.activePlayer,
+    1
+  );
 
   // プレイヤー交代
   advanceTurnCore();
@@ -779,6 +908,11 @@ function breakthroughTurn() {
     state.floorCount
   );
 
+  console.log(
+    "先制を受けるチーム",
+    teamLabels[preemptiveTeam]
+  );
+
   // 階層変更
   addLog(
     `----- ${state.floorCount}F -----`
@@ -786,7 +920,9 @@ function breakthroughTurn() {
 
   // 次の階層の先制を取得
   const action =
-    state.floorActions[state.floorCount];
+    state.floorActions[
+      state.floorCount
+    ];
 
   console.log(
     "先制行動",
@@ -799,6 +935,7 @@ function breakthroughTurn() {
     applyFloorAction(
       state.floorCount,
       action,
+      preemptiveTeam,
       `${state.floorCount}F先制`
     );
 
@@ -1064,6 +1201,76 @@ function loadPhaseIntoEditor(skill, phaseIndex) {
     phase.effect ?? "none";
 }
 
+function getSelectedFloorTargets() {
+  const checkboxes =
+    document.querySelectorAll(".floor-target");
+
+  const targets = [];
+
+  checkboxes.forEach((checkbox) => {
+    if (checkbox.checked) {
+      targets.push(checkbox.dataset.role);
+    }
+  });
+
+  return targets;
+}
+
+function setFloorTargetCheckboxes(targets) {
+
+  const checkboxes =
+    document.querySelectorAll(".floor-target");
+
+  const targetSet =
+    new Set(targets ?? ["all"]);
+
+  checkboxes.forEach((checkbox) => {
+
+    checkbox.checked =
+      targetSet.has(checkbox.dataset.role);
+
+  });
+}
+
+function setupFloorTargetCheckboxes() {
+
+  const checkboxes =
+    document.querySelectorAll(".floor-target");
+
+  const allCheckbox =
+    document.querySelector(
+      '.floor-target[data-role="all"]'
+    );
+
+  if (!allCheckbox) return;
+
+  allCheckbox.addEventListener("change", () => {
+
+    if (allCheckbox.checked) {
+
+      checkboxes.forEach((checkbox) => {
+        checkbox.checked =
+          checkbox === allCheckbox;
+      });
+
+    }
+  });
+
+  checkboxes.forEach((checkbox) => {
+
+    if (checkbox === allCheckbox) return;
+
+    checkbox.addEventListener("change", () => {
+
+      if (checkbox.checked) {
+        allCheckbox.checked = false;
+      }
+
+    });
+
+  });
+}
+
 function openFloorEditor(floor = null) {
 
   // floorが指定されていなければ現在の階層を使う
@@ -1074,13 +1281,12 @@ function openFloorEditor(floor = null) {
 
   editingFloor = targetFloor;
 
-  elements.floorEditTarget.value = targetFloor;
+  elements.floorEditTarget.value =
+    targetFloor;
 
-  // その階層に登録されている先制を取得
   const action =
     state.floorActions[targetFloor];
 
-  // 登録済みなら内容を表示
   elements.floorActionType.value =
     action?.type ?? "none";
 
@@ -1092,6 +1298,11 @@ function openFloorEditor(floor = null) {
 
   elements.floorSuperResolveCount.value =
     getSuperResolveCount(action) || 1;
+
+  // 対象チェックボックスを読み込む
+  setFloorTargetCheckboxes(
+    action?.targets ?? ["all"]
+  );
 
   elements.floorDialogTitle.textContent =
     `${targetFloor}F 先制行動`;
@@ -1100,19 +1311,22 @@ function openFloorEditor(floor = null) {
 }
 
 function loadFloorActionToEditor(floor) {
-  const targetFloor = Number(floor);
 
-  if (!Number.isInteger(targetFloor) || targetFloor < 1) {
+  const targetFloor =
+    Number(floor);
+
+  if (
+    !Number.isInteger(targetFloor) ||
+    targetFloor < 1
+  ) {
     return;
   }
 
-  const action = state.floorActions[targetFloor];
+  const action =
+    state.floorActions[targetFloor];
 
   elements.floorActionType.value =
     action?.type ?? "none";
-
-  elements.floorActionTarget.value =
-    action?.target ?? "breaker";
 
   elements.floorActionValue.value =
     action?.value ?? 1;
@@ -1122,6 +1336,11 @@ function loadFloorActionToEditor(floor) {
 
   elements.floorSuperResolveCount.value =
     getSuperResolveCount(action) || 1;
+
+  // 対象を読み込む
+  setFloorTargetCheckboxes(
+    action?.targets ?? ["all"]
+  );
 
   elements.floorDialogTitle.textContent =
     `${targetFloor}F 先制行動`;
@@ -1131,7 +1350,79 @@ function closeFloorEditor() {
   elements.floorDialog.close();
 }
 
+function getSelectedFloorTargets() {
+
+  return Array.from(
+    document.querySelectorAll(".floor-target:checked")
+  ).map(input => ({
+    team: Number(input.dataset.team),
+    role: input.dataset.role
+  }));
+
+}
+
+function setupFloorTargetCheckboxes() {
+
+  document.querySelectorAll(".floor-target-all")
+    .forEach(allCheckbox => {
+
+      allCheckbox.addEventListener("change", () => {
+
+        const team =
+          Number(allCheckbox.dataset.team);
+
+        document
+          .querySelectorAll(
+            `.floor-target[data-team="${team}"]`
+          )
+          .forEach(checkbox => {
+
+            checkbox.checked =
+              allCheckbox.checked;
+
+          });
+
+      });
+
+    });
+
+
+  document.querySelectorAll(".floor-target")
+    .forEach(checkbox => {
+
+      checkbox.addEventListener("change", () => {
+
+        const team =
+          Number(checkbox.dataset.team);
+
+        const members =
+          Array.from(
+            document.querySelectorAll(
+              `.floor-target[data-team="${team}"]`
+            )
+          );
+
+        const allChecked =
+          members.length > 0 &&
+          members.every(member => member.checked);
+
+        const allCheckbox =
+          document.querySelector(
+            `.floor-target-all[data-team="${team}"]`
+          );
+
+        if (allCheckbox) {
+          allCheckbox.checked = allChecked;
+        }
+
+      });
+
+    });
+
+}
+
 function saveCurrentFloorAction() {
+
   const floor =
     Number(elements.floorEditTarget.value);
 
@@ -1141,18 +1432,37 @@ function saveCurrentFloorAction() {
   const value =
     Number(elements.floorActionValue.value);
 
-   state.floorActions[floor] = {
-      type,
-      target: elements.floorActionTarget.value,
-      value,
-      superResolve: elements.floorSuperResolve.checked,
-      superResolveCount: clampNumber(
+  let targets =
+    getSelectedFloorTargets();
+
+  // 対象が1つも選ばれていない場合は
+  // 「全員」を自動的に選択する
+  if (targets.length === 0) {
+    targets = ["all"];
+  }
+
+  state.floorActions[floor] = {
+
+    type,
+
+    value,
+
+    targets,
+
+    superResolve:
+      elements.floorSuperResolve.checked,
+
+    superResolveCount:
+      clampNumber(
         elements.floorSuperResolveCount.value,
         1,
         9
       )
-    }; 
+
+  };
+
   delete state.superResolveUses[floor];
+
   render();
 }
 
@@ -1170,35 +1480,23 @@ function saveAndNextFloor() {
   // 現在の階層を保存
   saveCurrentFloorAction();
 
-  // 次の階層へ
+  // 次の階層
   const nextFloor =
     Number(elements.floorEditTarget.value) + 1;
 
-  editingFloor = nextFloor;
+  editingFloor =
+    nextFloor;
 
   elements.floorEditTarget.value =
     nextFloor;
 
-  // 次の階層に登録済みの先制を読み込む
-  const action =
-    state.floorActions[nextFloor];
-
-  elements.floorActionType.value =
-    action?.type ?? "none";
-
-  elements.floorActionValue.value =
-    action?.value ?? 1;
-
-  elements.floorSuperResolve.checked =
-    !!action?.superResolve;
-
-  elements.floorSuperResolveCount.value =
-    getSuperResolveCount(action) || 1;
-
-  elements.floorDialogTitle.textContent =
-    `${nextFloor}F 先制行動`;
+  // 次の階層のデータを読み込む
+  loadFloorActionToEditor(
+    nextFloor
+  );
 
   render();
+
 }
 
 function openMemberEditor(teamIndex, memberIndex, skillType = "member") {
@@ -2315,7 +2613,12 @@ elements.startBattle.addEventListener(
 
    const action = state.floorActions[1];
 
-    applyFloorAction(1, action, "1F先制");
+    applyFloorAction(
+      1,
+      action,
+      state.activePlayer,
+      "1F先制"
+    );
 
     render();
 
@@ -2350,3 +2653,4 @@ if (autoSavedState) {
 }
 
 render();
+setupFloorTargetCheckboxes();

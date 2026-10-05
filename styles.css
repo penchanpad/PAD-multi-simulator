@@ -1087,26 +1087,56 @@ h2 {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+  }
 }
 
-.floor-action-row > span {
-  flex: 1;
-  min-width: 160px;
+/* =========================================
+   先制対象チェックボックス
+   ========================================= */
+
+.floor-target-section {
+  display: grid;
+  gap: 10px;
 }
 
-.edit-floor-action,
-.delete-floor-action {
-  min-width: 52px;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-weight: 700;
+.target-members {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
-.edit-floor-action {
-  background: #eeeeee;
+.target-members label {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid #cccccc;
+  background: #f8f8f8;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.delete-floor-action {
-  background: #f5dede;
+.target-members input[type="checkbox"] {
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
 }
+
+.target-member-all {
+  grid-column: 1 / -1;
+  font-weight: 800 !important;
+  background: #eeeeee !important;
+}
+
+@media (max-width: 420px) {
+
+  .target-members {
+    grid-template-columns: 1fr;
+  }
+
 }
