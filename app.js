@@ -2546,7 +2546,8 @@ function saveTeamPresetSlot(slot) {
     name: presetName,
     savedAt: new Date().toISOString(),
     teams: deepClone(state.teams),
-    leaderIndices:deepClone(state.leaderIndices)
+    leaderIndices: deepClone(state.leaderIndices),
+    floorActions: deepClone(state.floorActions)
   };
 
   setTeamPresets(presets);
@@ -2565,9 +2566,14 @@ function loadTeamPresetSlot(slot) {
 
   pushHistory();
   state.teams = deepClone(preset.teams);
+
+  state.floorActions = deepClone(
+    preset.floorActions ?? {}
+  );
+
   state.leaderIndices = deepClone(
     preset.leaderIndices ?? [0,5]
-  )
+  );
   state.isBattleStarted = false;
   state.setupSnapshot = null;
   ensureTeams();
