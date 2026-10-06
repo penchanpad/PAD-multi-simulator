@@ -346,6 +346,101 @@
           >
         </label>
 
+        <div class="super-resolve-action-section">
+
+          <div class="field-label">超根性発動時の行動</div>
+
+          <label>
+            種類
+            <select id="superResolveActionType">
+              <option value="none">なし</option>
+              <option value="delay">遅延</option>
+              <option value="haste">ヘイスト</option>
+            </select>
+          </label>
+
+          <label>
+            数値
+            <input
+              id="superResolveActionValue"
+              type="number"
+              min="1"
+              max="99"
+              value="1"
+            >
+          </label>
+
+          <div class="field-label">対象</div>
+
+          <div class="target-members">
+
+            <label class="target-member-all">
+              <input
+                type="checkbox"
+                class="super-resolve-target"
+                data-role="all"
+              >
+              全員
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="super-resolve-target"
+                data-role="leader"
+              >
+              リーダー
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="super-resolve-target"
+                data-role="sub1"
+              >
+              サブ1
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="super-resolve-target"
+                data-role="sub2"
+              >
+              サブ2
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="super-resolve-target"
+                data-role="sub3"
+              >
+              サブ3
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="super-resolve-target"
+                data-role="sub4"
+              >
+              サブ4
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                class="super-resolve-target"
+                data-role="friend"
+              >
+              助っ人
+            </label>
+
+          </div>
+
+        </div>
+
         <div class="dialog-actions">
           <button
             id="saveFloorAction"

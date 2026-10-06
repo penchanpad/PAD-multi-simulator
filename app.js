@@ -51,6 +51,8 @@ const elements = {
   floorTargetAll: document.querySelectorAll(".floor-target-all"),
   floorSuperResolve: document.querySelector("#floorSuperResolve"),
   floorSuperResolveCount: document.querySelector("#floorSuperResolveCount"),
+  superResolveActionType:document.querySelector("#superResolveActionType"),
+  superResolveActionValue:document.querySelector("#superResolveActionValue"),
   floorActionList:document.querySelector("#floorActionList"),
   saveFloorAction: document.querySelector("#saveFloorAction"),
   saveAndNextFloor:document.querySelector("#saveAndNextFloor"),
@@ -750,11 +752,63 @@ function hasRemainingSuperResolve(floor, action) {
   return total > used;
 }
 
-function useSuperResolve(floor, action) {
-  const total = getSuperResolveCount(action);
-  const used = (state.superResolveUses[floor] ?? 0) + 1;
-  state.superResolveUses[floor] = used;
-  addLog(`${floor}F 超根性発動 ${used}/${total}`);
+function useSuperResolve(
+  floor,
+  action,
+  teamIndex
+) {
+
+  const total =
+    getSuperResolveCount(action);
+
+  const used =
+    (state.superResolveUses[floor] ?? 0) + 1;
+
+  state.superResolveUses[floor] =
+    used;
+
+  addLog(
+    `${floor}F 超根性発動 ${used}/${total}`
+  );
+
+  // 超根性発動時の行動
+  const superAction =
+    action.superResolveAction;
+
+  if (!superAction) {
+    return;
+  }
+
+  const targets =
+    superAction.targets ?? ["all"];
+
+  // ヘイスト
+  if (superAction.type === "haste") {
+
+    addLog(
+      `超根性: ${superAction.value}ヘイスト`
+    );
+
+    applyPreemptiveHaste(
+      superAction.value,
+      teamIndex,
+      targets
+    );
+  }
+
+  // 遅延
+  if (superAction.type === "delay") {
+
+    addLog(
+      `超根性: スキル遅延 ${superAction.value}`
+    );
+
+    applyPreemptiveDelay(
+      superAction.value,
+      teamIndex,
+      targets
+    );
+  }
 }
 
 function applyFloorAction(
@@ -886,8 +940,8 @@ function breakthroughTurn() {
 
   pushHistory();
 
-  // 突破したチームを記録
-  // このチームが次の階層の先制を受ける
+  // 突破したチーム
+  // このチームが先制・超根性を受ける
   const preemptiveTeam =
     state.activePlayer;
 
@@ -896,6 +950,42 @@ function breakthroughTurn() {
     state.activePlayer,
     1
   );
+
+  // =========================
+  // 現在階層の超根性チェック
+  // =========================
+
+  const currentFloor =
+    state.floorCount;
+
+  const currentAction =
+    state.floorActions[currentFloor];
+
+  if (
+    hasRemainingSuperResolve(
+      currentFloor,
+      currentAction
+    )
+  ) {
+
+    useSuperResolve(
+      currentFloor,
+      currentAction,
+      preemptiveTeam
+    );
+
+    // 突破ボタンを押したので
+    // 手番は交代する
+    advanceTurnCore();
+
+    render();
+
+    return;
+  }
+
+  // =========================
+  // 通常の階層突破
+  // =========================
 
   // プレイヤー交代
   advanceTurnCore();
@@ -1202,73 +1292,189 @@ function loadPhaseIntoEditor(skill, phaseIndex) {
 }
 
 function getSelectedFloorTargets() {
-  const checkboxes =
-    document.querySelectorAll(".floor-target");
 
-  const targets = [];
+  return Array.from(
+    document.querySelectorAll(
+      ".floor-target:checked"
+    )
+  ).map(input =>
+    input.dataset.role
+  );
 
-  checkboxes.forEach((checkbox) => {
-    if (checkbox.checked) {
-      targets.push(checkbox.dataset.role);
-    }
-  });
-
-  return targets;
 }
+
 
 function setFloorTargetCheckboxes(targets) {
 
   const checkboxes =
-    document.querySelectorAll(".floor-target");
+    document.querySelectorAll(
+      ".floor-target"
+    );
 
   const targetSet =
-    new Set(targets ?? ["all"]);
+    new Set(
+      targets ?? ["all"]
+    );
 
-  checkboxes.forEach((checkbox) => {
+  checkboxes.forEach(
+    (checkbox) => {
 
-    checkbox.checked =
-      targetSet.has(checkbox.dataset.role);
+      checkbox.checked =
+        targetSet.has(
+          checkbox.dataset.role
+        );
 
-  });
+    }
+  );
+
 }
+
 
 function setupFloorTargetCheckboxes() {
 
   const checkboxes =
-    document.querySelectorAll(".floor-target");
+    document.querySelectorAll(
+      ".floor-target"
+    );
 
   const allCheckbox =
     document.querySelector(
       '.floor-target[data-role="all"]'
     );
 
-  if (!allCheckbox) return;
+  if (!allCheckbox) {
+    return;
+  }
 
-  allCheckbox.addEventListener("change", () => {
+  allCheckbox.addEventListener(
+    "change",
+    () => {
 
-    if (allCheckbox.checked) {
+      if (allCheckbox.checked) {
 
-      checkboxes.forEach((checkbox) => {
-        checkbox.checked =
-          checkbox === allCheckbox;
-      });
+        checkboxes.forEach(
+          (checkbox) => {
 
-    }
-  });
+            checkbox.checked =
+              checkbox === allCheckbox;
 
-  checkboxes.forEach((checkbox) => {
+          }
+        );
 
-    if (checkbox === allCheckbox) return;
-
-    checkbox.addEventListener("change", () => {
-
-      if (checkbox.checked) {
-        allCheckbox.checked = false;
       }
 
-    });
+    }
+  );
 
-  });
+  checkboxes.forEach(
+    (checkbox) => {
+
+      if (checkbox === allCheckbox) {
+        return;
+      }
+
+      checkbox.addEventListener(
+        "change",
+        () => {
+
+          if (checkbox.checked) {
+            allCheckbox.checked = false;
+          }
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
+function setSuperResolveTargetCheckboxes(
+  targets
+) {
+
+  const checkboxes =
+    document.querySelectorAll(
+      ".super-resolve-target"
+    );
+
+  const targetSet =
+    new Set(
+      targets ?? ["all"]
+    );
+
+  checkboxes.forEach(
+    (checkbox) => {
+
+      checkbox.checked =
+        targetSet.has(
+          checkbox.dataset.role
+        );
+
+    }
+  );
+
+}
+
+
+function setupSuperResolveTargetCheckboxes() {
+
+  const checkboxes =
+    document.querySelectorAll(
+      ".super-resolve-target"
+    );
+
+  const allCheckbox =
+    document.querySelector(
+      '.super-resolve-target[data-role="all"]'
+    );
+
+  if (!allCheckbox) {
+    return;
+  }
+
+  allCheckbox.addEventListener(
+    "change",
+    () => {
+
+      if (allCheckbox.checked) {
+
+        checkboxes.forEach(
+          (checkbox) => {
+
+            checkbox.checked =
+              checkbox === allCheckbox;
+
+          }
+        );
+
+      }
+
+    }
+  );
+
+  checkboxes.forEach(
+    (checkbox) => {
+
+      if (checkbox === allCheckbox) {
+        return;
+      }
+
+      checkbox.addEventListener(
+        "change",
+        () => {
+
+          if (checkbox.checked) {
+            allCheckbox.checked = false;
+          }
+
+        }
+      );
+
+    }
+  );
+
 }
 
 function openFloorEditor(floor = null) {
@@ -1296,10 +1502,30 @@ function openFloorEditor(floor = null) {
   elements.floorSuperResolve.checked =
     !!action?.superResolve;
 
-  elements.floorSuperResolveCount.value =
+     elements.floorSuperResolveCount.value =
     getSuperResolveCount(action) || 1;
 
-  // 対象チェックボックスを読み込む
+  // =========================
+  // 超根性発動時の行動を読み込む
+  // =========================
+
+  const superAction =
+    action?.superResolveAction;
+
+  elements.superResolveActionType.value =
+    superAction?.type ?? "none";
+
+  elements.superResolveActionValue.value =
+    superAction?.value ?? 1;
+
+  setSuperResolveTargetCheckboxes(
+    superAction?.targets ?? ["all"]
+  );
+
+  // =========================
+  // 通常先制の対象を読み込む
+  // =========================
+
   setFloorTargetCheckboxes(
     action?.targets ?? ["all"]
   );
@@ -1334,10 +1560,30 @@ function loadFloorActionToEditor(floor) {
   elements.floorSuperResolve.checked =
     !!action?.superResolve;
 
-  elements.floorSuperResolveCount.value =
+    elements.floorSuperResolveCount.value =
     getSuperResolveCount(action) || 1;
 
-  // 対象を読み込む
+  // =========================
+  // 超根性発動時の行動を読み込む
+  // =========================
+
+  const superAction =
+    action?.superResolveAction;
+
+  elements.superResolveActionType.value =
+    superAction?.type ?? "none";
+
+  elements.superResolveActionValue.value =
+    superAction?.value ?? 1;
+
+  setSuperResolveTargetCheckboxes(
+    superAction?.targets ?? ["all"]
+  );
+
+  // =========================
+  // 通常先制の対象を読み込む
+  // =========================
+
   setFloorTargetCheckboxes(
     action?.targets ?? ["all"]
   );
@@ -1441,14 +1687,27 @@ function saveCurrentFloorAction() {
     targets = ["all"];
   }
 
+  const superResolveType =
+  elements.superResolveActionType.value;
+
+  const superResolveValue =
+    Number(elements.superResolveActionValue.value);
+
+  const superResolveTargets =
+    Array.from(
+      document.querySelectorAll(
+        ".super-resolve-target:checked"
+      )
+    ).map(input => input.dataset.role);
+
   state.floorActions[floor] = {
 
+    // 先制
     type,
-
     value,
-
     targets,
 
+    // 超根性
     superResolve:
       elements.floorSuperResolve.checked,
 
@@ -1457,7 +1716,16 @@ function saveCurrentFloorAction() {
         elements.floorSuperResolveCount.value,
         1,
         9
-      )
+      ),
+
+    superResolveAction: {
+      type: superResolveType,
+      value: superResolveValue,
+      targets:
+        superResolveTargets.length > 0
+          ? superResolveTargets
+          : ["all"]
+    }
 
   };
 
@@ -2654,3 +2922,4 @@ if (autoSavedState) {
 
 render();
 setupFloorTargetCheckboxes();
+setupSuperResolveTargetCheckboxes();
